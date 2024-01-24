@@ -1,0 +1,116 @@
+[33mcommit 2efef17eecd895b1699f638ac09012df80186afc[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Jan 24 18:01:03 2024 +0100
+
+    Added .gitignore and cleaned up the prject a bit
+
+[33mcommit dc9c72f41152a3109ecfa631c3b6e99e5c9720ad[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Jan 24 17:59:14 2024 +0100
+
+    Add .gitignore file
+
+[33mcommit 6a63dace16bdb4d4ed833329cccc68f17da4828d[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Jan 24 17:17:45 2024 +0100
+
+    Beginnings of support for Oseen tensor
+
+[33mcommit 73bdf22445c09f150165848012987d44ddab7155[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Jan 17 13:46:01 2024 +0100
+
+    Update plot order parameter filename and display plot window
+
+[33mcommit b8f13ecb030e85f335c5d362b2a8a74b733e37bc[m[33m ([m[1;31mKuramoto/main[m[33m)[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Dec 13 20:32:40 2023 +0100
+
+    Made functionality to generate Pyplots
+
+[33mcommit 4017e1d2cfd5264bd7c98f97050f4caa8082696d[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Dec 13 15:06:35 2023 +0100
+
+    Cleaned up warnings
+
+[33mcommit 0107dd60518c3350b8213bc6efbba1dad6c8e021[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Mon Dec 11 20:50:08 2023 +0100
+
+    Add Python bindings and plot order parameter
+
+[33mcommit 2e171cf92ff3a8757b95fa9357ca457aa91e6a54[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Sun Dec 10 20:23:05 2023 +0100
+
+    Add complex number support for order parameter
+    calculation
+
+[33mcommit 79dab6f02f55310d0cb8c28f812837984d724da3[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Sun Dec 10 20:08:11 2023 +0100
+
+    Fix UI update frequency and reset simulation flag
+
+[33mcommit bc71f8228110b43ba4de6d9bad92758909adb617[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Fri Dec 8 16:54:21 2023 +0100
+
+    Update simulation UI and handle pause/resume
+    functionality
+
+[33mcommit 6a57ecd37ecd9ce926f7288c44715d0b32ff92bf[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Dec 6 19:54:45 2023 +0100
+
+    Added first working UI
+
+[33mcommit f63825ab820b85ec2c9ea698e31884533fe298af[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Nov 29 18:25:26 2023 +0100
+
+    Reset imgui-sfml submodule
+
+[33mcommit cca67b413fff6fe4efd0db9765d3f4964927042d[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Nov 29 17:34:56 2023 +0100
+
+    TGUI removed, ImGui added. First compilation.
+
+[33mcommit 797760aa015de88e29e6c7a6d2c9ac1114dd9005[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Mon Nov 20 15:33:39 2023 +0100
+
+    Before updating UI
+
+[33mcommit 085d2d33138d7066f8ecc43b21a5a136da042361[m
+Merge: 530de4f 7352830
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Thu Sep 21 13:16:17 2023 +0200
+
+    Merge branch 'main' of https://github.com/hakonaunet/Kuramoto
+
+[33mcommit 530de4fb7599701c70636451d2b9d915dae17e62[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Thu Sep 21 13:15:52 2023 +0200
+
+    Added further file structure
+
+[33mcommit 50186965c9c6e6dae91a03885b82d29757d1d945[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Wed Sep 20 16:23:14 2023 +0200
+
+    Expanded file structure. Added CMake.
+
+[33mcommit 73528309c2c018da5dc5b7a1b759903b99bc606e[m
+Author: Håkon Aunet <128052041+hakonaunet@users.noreply.github.com>
+Date:   Tue Sep 19 14:40:42 2023 +0200
+
+    Create README.md
+
+[33mcommit b4f7eea726136fd78fbcc5f1b9218cb01794756a[m
+Author: hakonaunet <hakonaunet@hotmail.com>
+Date:   Tue Sep 19 14:05:47 2023 +0200
+
+    First commit
