@@ -10,11 +10,15 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data) { // Changed variable nam
 
     width = data.width;
     height = data.height;
-    dt = data.deltaTime;
+    N = width * height;
+    z = 0;
+    force = 1;
+    mu = 1;
 
     positions = std::vector<std::vector<Eigen::Vector3d>>(data.width, std::vector<Eigen::Vector3d>(data.height, Eigen::Vector3d::Zero()));
     intrinsicFrequencies = std::vector<std::vector<double>>(data.width, std::vector<double>(data.height, 0.0));
     angles = std::vector<std::vector<double>>(data.width, std::vector<double>(data.height, 0.0));
+    velocities = std::vector<std::vector<Eigen::Vector3d>>(data.width, std::vector<Eigen::Vector3d>(data.height, Eigen::Vector3d::Zero()));
 
     // Parse through the positions and set the initial values
     for (size_t i = 0; i < width; ++i) {
@@ -138,22 +142,40 @@ double Oseen::initializeAngle() {
 }
 
 void Oseen::iteration() {
-    // Update the angles
-    for (size_t i = 0; i < width; ++i) {
-        for (size_t j = 0; j < height-1-i; ++j) {
-            // Calculate the new angle
-            double newAngle = angles[i][j] + intrinsicFrequencies[i][j] * sharedData.deltaTime;
-            // Ensure the angle is within [0, 2pi)
-            newAngle = fmod(newAngle, 2 * M_PI);
-            if (newAngle < 0) {
-                newAngle += 2 * M_PI;
-            }
-            angles[i][j] = newAngle;
+    unsigned int cilia_left_to_consider = N+1;
+    for (size_t x = 0; x < width; ++x) {
+        for (size_t y = 0; y < height; ++y) {
+            calculateVelocity(x, y, cilia_left_to_consider);
+            cilia_left_to_consider--;
         }
     }
 
     // Update the positions
     // ...
+}
+
+// Get velocity of cilia at position (x, y)
+void Oseen::calculateVelocity(int x, int y, int break_point) {
+    int counter = 0;
+    Eigen::Vector3d r_i = positions[x][y] + Eigen::Vector3d(cos(angles[x][y]), sin(angles[x][y]), z);
+    Eigen::Vector3d f_i = Eigen::Vector3d(-force * sin(angles[x][y]), force * cos(angles[x][y]), z);
+    for (int i = width-1; i >= 0; i--) {
+        for (int j = height-1; j >= 0; j--) {
+            if (i == x && j == y) {
+                continue;
+            }
+            if (counter >= break_point) {
+                return;               
+            }
+            Eigen::Vector3d r_j = positions[i][j] + Eigen::Vector3d(cos(angles[i][j]), sin(angles[i][j]), z);
+            Eigen::Vector3d r = r_i - r_j;
+            double r_length = r.norm(); // Length of r
+            Eigen::Vector3d f_j = Eigen::Vector3d(-force * sin(angles[i][j]), force * cos(angles[i][j]), z);
+            velocities[x][y] += (1/(8*M_PI*mu*r_length)) * (f_j + (r.dot(f_j)/r_length) * r);
+            velocities[i][j] += (1/(8*M_PI*mu*r_length)) * (f_i + (r.dot(f_i)/r_length) * r);
+            counter++;
+        }
+    }
 }
 
 // Function to calculate the Kuramoto order parameter
