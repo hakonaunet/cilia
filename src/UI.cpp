@@ -50,6 +50,8 @@ void UI::render() {
         ImGui::SliderInt("Width", &oseenData->width, 1, 1350);
         ImGui::SliderInt("Height", &oseenData->height, 1, 1350);
         ImGui::SliderFloat("Grid Spacing", &oseenData->gridSpacing, 1.0f, 10.0f);
+        ImGui::SliderFloat("Cilia Radius", &oseenData->cilia_radius, 0.0f, 5.0f);
+        ImGui::SliderFloat("Force Amplitude", &oseenData->force_amplitude, 0.0f, oseenData->force);
 
         // ImGui drop down menu with options from the enum class 'NoiseMode'
         std::string noiseModeOptionsStr[] = { "None", "Square", "Circular" };

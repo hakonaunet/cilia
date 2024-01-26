@@ -8,17 +8,17 @@
 
 struct SharedDataOseen : public SharedData {
     int width, height;
-    float  gridSpacing, frequencyWidth, noiseWidth, frequencyDeviation, angleDeviation, angleWidth;
-    const double noiseWidthMax, frequencyWidthMax, frequencyDeviationMax, angleWidthMax, angleDeviationMax;
+    float  gridSpacing, frequencyWidth, noiseWidth, frequencyDeviation, angleDeviation, angleWidth, cilia_radius, force_amplitude;
+    const double noiseWidthMax, frequencyWidthMax, frequencyDeviationMax, angleWidthMax, angleDeviationMax, force;
     NoiseMode noiseMode;
     FrequencyDistribution frequencyDistribution;
     AngleDistribution angleDistribution;
 
-    SharedDataOseen() : SharedData(), width(2), height(1), frequencyWidth(0.1), gridSpacing(4), noiseWidth(0), noiseWidthMax(2),
-                        frequencyDeviation(0.1), frequencyWidthMax(1), frequencyDeviationMax(1), 
-                        angleWidth(M_PI), angleWidthMax(M_PI), angleDeviation(0.1), angleDeviationMax(1),
-                        noiseMode(NoiseMode::None), frequencyDistribution(FrequencyDistribution::None), angleDistribution(AngleDistribution::Uniform) {
-        reset();
+    SharedDataOseen() : SharedData(), width(2), height(1), gridSpacing(4), frequencyWidth(0.1), noiseWidth(0), frequencyDeviation(0.1), 
+                    angleDeviation(0.1), angleWidth(M_PI), cilia_radius(1), force_amplitude(0.2), noiseWidthMax(2), frequencyWidthMax(1), 
+                    frequencyDeviationMax(1), angleWidthMax(M_PI), angleDeviationMax(1), force(1), 
+                    noiseMode(NoiseMode::None), frequencyDistribution(FrequencyDistribution::None), angleDistribution(AngleDistribution::Uniform) {
+    reset();
     }
 
     void reset() override {

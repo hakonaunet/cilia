@@ -12,8 +12,11 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data) { // Changed variable nam
     height = data.height;
     N = width * height;
     z = 0;
-    force = 1;
+    force = data.force;
     mu = 1;
+    cilia_radius = data.cilia_radius;
+    fluid_viscosity = 1;
+    drag_coefficient = 6*M_PI*fluid_viscosity*cilia_radius;
 
     positions = std::vector<std::vector<Eigen::Vector3d>>(data.width, std::vector<Eigen::Vector3d>(data.height, Eigen::Vector3d::Zero()));
     intrinsicFrequencies = std::vector<std::vector<double>>(data.width, std::vector<double>(data.height, 0.0));
@@ -50,13 +53,13 @@ Eigen::Vector3d Oseen::initializePosition(int x, int y) {
     switch (sharedData.noiseMode) {
         case NoiseMode::None: {
             // Return the grid position without any noise
-            return Eigen::Vector3d(gridX, gridY, 0);
+            return Eigen::Vector3d(gridX, gridY, z);
         }
         case NoiseMode::Square: {
             // Generate a random position within a square centered at the grid point
             double noiseX = (std::rand() / (double)RAND_MAX - 0.5) * sharedData.noiseWidthMax * 2;
             double noiseY = (std::rand() / (double)RAND_MAX - 0.5) * sharedData.noiseWidthMax * 2;
-            return Eigen::Vector3d(gridX + noiseX, gridY + noiseY, 0);
+            return Eigen::Vector3d(gridX + noiseX, gridY + noiseY, z);
         }
         case NoiseMode::Circular: {
             // Generate a random angle and a random radius
@@ -68,11 +71,11 @@ Eigen::Vector3d Oseen::initializePosition(int x, int y) {
             double noiseY = radius * std::sin(angle);
 
             // Return the final position
-            return Eigen::Vector3d(gridX + noiseX, gridY + noiseY, 0);
+            return Eigen::Vector3d(gridX + noiseX, gridY + noiseY, z);
         }
         default: {
             // Handle other cases if necessary
-            return Eigen::Vector3d(gridX, gridY, 0);
+            return Eigen::Vector3d(gridX, gridY, z);
         }
     }
 }
@@ -143,22 +146,24 @@ double Oseen::initializeAngle() {
 
 void Oseen::iteration() {
     unsigned int cilia_left_to_consider = N+1;
+    // Reset velocities
+    velocities = std::vector<std::vector<Eigen::Vector3d>>(width, std::vector<Eigen::Vector3d>(height, Eigen::Vector3d::Zero()));
     for (size_t x = 0; x < width; ++x) {
         for (size_t y = 0; y < height; ++y) {
-            calculateVelocity(x, y, cilia_left_to_consider);
             cilia_left_to_consider--;
+            calculateVelocity(x, y, cilia_left_to_consider);
         }
     }
 
-    // Update the positions
-    // ...
+    
 }
 
 // Get velocity of cilia at position (x, y)
 void Oseen::calculateVelocity(int x, int y, int break_point) {
     int counter = 0;
-    Eigen::Vector3d r_i = positions[x][y] + Eigen::Vector3d(cos(angles[x][y]), sin(angles[x][y]), z);
-    Eigen::Vector3d f_i = Eigen::Vector3d(-force * sin(angles[x][y]), force * cos(angles[x][y]), z);
+    Eigen::Vector3d r_i = positions[x][y] + cilia_radius * Eigen::Vector3d(cos(angles[x][y]), sin(angles[x][y]), 0);
+    double f_i_magnitude = getForce(x, y);
+    Eigen::Vector3d f_i = Eigen::Vector3d(-f_i_magnitude * sin(angles[x][y]), f_i_magnitude * cos(angles[x][y]), 0);
     for (int i = width-1; i >= 0; i--) {
         for (int j = height-1; j >= 0; j--) {
             if (i == x && j == y) {
@@ -167,15 +172,46 @@ void Oseen::calculateVelocity(int x, int y, int break_point) {
             if (counter >= break_point) {
                 return;               
             }
-            Eigen::Vector3d r_j = positions[i][j] + Eigen::Vector3d(cos(angles[i][j]), sin(angles[i][j]), z);
+            Eigen::Vector3d r_j = positions[i][j] + cilia_radius * Eigen::Vector3d(cos(angles[i][j]), sin(angles[i][j]), 0);
             Eigen::Vector3d r = r_i - r_j;
             double r_length = r.norm(); // Length of r
-            Eigen::Vector3d f_j = Eigen::Vector3d(-force * sin(angles[i][j]), force * cos(angles[i][j]), z);
+            double f_j_magnitude = getForce(i, j);
+            Eigen::Vector3d f_j = Eigen::Vector3d(-f_j_magnitude * sin(angles[i][j]), f_j_magnitude * cos(angles[i][j]), 0);
             velocities[x][y] += (1/(8*M_PI*mu*r_length)) * (f_j + (r.dot(f_j)/r_length) * r);
             velocities[i][j] += (1/(8*M_PI*mu*r_length)) * (f_i + (r.dot(f_i)/r_length) * r);
             counter++;
         }
     }
+}
+
+void Oseen::updateAngles() {
+    for (size_t x = 0; x < width; ++x) {
+        for (size_t y = 0; y < height; ++y) {
+            double f_i = getForce(x, y);
+            Eigen::Vector3d t_i = Eigen::Vector3d(-sin(angles[x][y]), cos(angles[x][y]), 0);
+            double omega_i = f_i / (drag_coefficient * cilia_radius);
+            double dot_product = t_i.dot(velocities[x][y]);
+
+            // Runge-Kutta 4 method
+            double k1 = sharedData.deltaTime * (omega_i + dot_product / cilia_radius);
+            double k2 = sharedData.deltaTime * (omega_i + (dot_product + 0.5 * sharedData.deltaTime * k1) / cilia_radius);
+            double k3 = sharedData.deltaTime * (omega_i + (dot_product + 0.5 * sharedData.deltaTime * k2) / cilia_radius);
+            double k4 = sharedData.deltaTime * (omega_i + (dot_product + sharedData.deltaTime * k3) / cilia_radius);
+
+            angles[x][y] += (k1 + 2*k2 + 2*k3 + k4) / 6;
+
+            // Ensure the angle is between 0 and 2π
+            if (angles[x][y] < 0) {
+                angles[x][y] += 2 * M_PI;
+            } else if (angles[x][y] >= 2 * M_PI) {
+                angles[x][y] -= 2 * M_PI;
+            }
+        }
+    }
+}
+
+double Oseen::getForce(int x, int y) {
+    return force + sharedData.force_amplitude*sin(angles[x][y]);
 }
 
 // Function to calculate the Kuramoto order parameter

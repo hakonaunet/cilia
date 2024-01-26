@@ -4,7 +4,7 @@
 OscillatorView::OscillatorView(const Grid& grid, int size)
     : grid_(grid), size_(size) {}
 
-void OscillatorView::render(sf::RenderWindow& window) {
+void OscillatorView::renderSquares(sf::RenderWindow& window) {
     const auto& gridData = grid_.getGrid();
     float cellWidth = window.getSize().x / static_cast<float>(gridData[0].size());
     float cellHeight = window.getSize().y / static_cast<float>(gridData.size());
@@ -18,7 +18,7 @@ void OscillatorView::render(sf::RenderWindow& window) {
     }
 }
 
-void OscillatorView::render(sf::RenderWindow& window) {
+void OscillatorView::renderCircles(sf::RenderWindow& window) {
     const auto& gridData = grid_.getGrid();
     float cellWidth = window.getSize().x / static_cast<float>(gridData[0].size());
     float cellHeight = window.getSize().y / static_cast<float>(gridData.size());

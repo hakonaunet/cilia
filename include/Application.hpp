@@ -9,19 +9,34 @@
 #include <iostream>
 
 #include "UI.hpp"
+#include "SharedData.hpp"
 #include "SharedDataKuramoto.hpp"
+#include "SharedDataOseen.hpp"
 #include "OscillatorView.hpp"
 #include "Grid.hpp"
 #include "PlotWindow.hpp"
+#include "Oseen.hpp"
+
+
+enum class SimulationMode {
+    Kuramoto,
+    Oseen
+};
 
 class Application {
 public:
     Application();
 
     void run();
+    void init();
 
 private:
-    SharedDataKuramoto SharedDataKuramoto;
-    Grid grid;
-    UI ui;
+    void promptForSimulationMode();
+
+    SimulationMode mode;
+    sf::Clock deltaClock;
+    std::unique_ptr<SharedData> sharedData;
+    std::unique_ptr<Grid> grid;
+    std::unique_ptr<Oseen> oseen;
+    std::unique_ptr<UI> ui;
 };

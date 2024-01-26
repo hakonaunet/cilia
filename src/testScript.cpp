@@ -6,7 +6,7 @@
 #define DT 0.001
 #define PI 3.14159265358979323846
 
-int main() {
+int test() {
     double q[N], w[N];
     int steps = 10000;
     double r12, v1x, v1y, v2x, v2y, f1x, f1y, f2x, f2y;
@@ -18,7 +18,7 @@ int main() {
     w[1] = 1.1;
 
 
-    for (int i = 0; i < steps; i++) {
+    for (int i = 0; i < steps; i++) {   
         w[0] = F0;
         r12 = (5+cos(q[0])-cos(q[1]))*(5+cos(q[0])-cos(q[1]))+(sin(q[0])-sin(q[1]))*(sin(q[0])-sin(q[1]));
         r12 = sqrt(r12);
