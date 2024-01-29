@@ -11,7 +11,6 @@ class OscillatorView {
 public:
     OscillatorView(const Grid& grid, int size);
     void renderSquares(sf::RenderWindow& window);
-    void renderCircles(sf::RenderWindow& window);
 
 private:
     const Grid& grid_;

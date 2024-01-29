@@ -18,9 +18,9 @@ struct SharedDataOseen : public SharedData {
                     angleDeviation(0.1), angleWidth(M_PI), cilia_radius(1), force_amplitude(0.2), noiseWidthMax(2), frequencyWidthMax(1), 
                     frequencyDeviationMax(1), angleWidthMax(M_PI), angleDeviationMax(1), force(1), 
                     noiseMode(NoiseMode::None), frequencyDistribution(FrequencyDistribution::None), angleDistribution(AngleDistribution::Uniform) {
-    reset();
+        deltaTime = 0.007;
+        reset();
     }
-
     void reset() override {
         SharedData::reset();
     }

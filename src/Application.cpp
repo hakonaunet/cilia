@@ -35,97 +35,93 @@ void Application::init() {
 }
 
 void Application::run() {
+    // Window setup
     sf::Vector2f windowsize(1350, 1350);
     int oscillatorSize = 30;
-    sf::RenderWindow window(sf::VideoMode(windowsize.x, windowsize.y), "Kuramoto Simulation");
-
-    // Set the position of the window (example: top-left corner of the screen)
+    sf::RenderWindow window(sf::VideoMode(windowsize.x, windowsize.y), "Simulation");
     window.setPosition(sf::Vector2i(7500, 0));
-    
-    bool ImGui_initialization = ImGui::SFML::Init(window);
-    if (!ImGui_initialization) {
-        // Handle initialization failure
+
+    // ImGui initialization
+    if (!ImGui::SFML::Init(window)) {
         std::cerr << "Failed to initialize ImGui with SFML." << std::endl;
+        return;  // Exit if initialization fails
     }
 
     sf::Clock deltaClock;
+
+    // Unique pointers for grid and views
     std::unique_ptr<Grid> grid = nullptr;
-    std::unique_ptr<OscillatorView> view = nullptr;
+    std::unique_ptr<Oseen> oseen = nullptr;
+    std::unique_ptr<OscillatorView> kuramotoView = nullptr;
+    std::unique_ptr<OseenView> oseenView = nullptr;
 
-    PlotWindow* plotWindow = nullptr;
-
+    // PlotWindow setup
+    std::unique_ptr<PlotWindow> plotWindow = nullptr;
 
     while (window.isOpen()) {
+        // Event handling
         sf::Event event;
         while (window.pollEvent(event)) {
             ImGui::SFML::ProcessEvent(window, event);
-
-            if (event.type == sf::Event::Closed)
-                window.close();
+            if (event.type == sf::Event::Closed) window.close();
         }
 
-        // Check if the simulation should be started
-        if (sharedData->isSimulationRunning && grid == nullptr) {
-            auto sharedDataKuramoto = dynamic_cast<SharedDataKuramoto*>(sharedData.get());
-            if (sharedDataKuramoto != nullptr) {
-                grid = std::unique_ptr<Grid>(new Grid(*sharedDataKuramoto));
-                view = std::make_unique<OscillatorView>(*grid, oscillatorSize);
-                sharedData->startSimulation = false;
-            } else {
-                // Handle the error
-            }
-        }
+        // Simulation start handling
         if (sharedData->startSimulation) {
-            auto sharedDataKuramoto = dynamic_cast<SharedDataKuramoto*>(sharedData.get());
-            if (sharedDataKuramoto != nullptr) {
-                grid = std::unique_ptr<Grid>(new Grid(*sharedDataKuramoto));
-                view = std::make_unique<OscillatorView>(*grid, oscillatorSize);
-                sharedData.reset();
-                sharedData->startSimulation = false;
+            if (auto sharedDataKuramoto = dynamic_cast<SharedDataKuramoto*>(sharedData.get())) {
+                grid = std::make_unique<Grid>(*sharedDataKuramoto);
+                kuramotoView = std::make_unique<OscillatorView>(*grid, oscillatorSize);
+            } else if (auto sharedDataOseen = dynamic_cast<SharedDataOseen*>(sharedData.get())) {
+                oseen = std::make_unique<Oseen>(*sharedDataOseen);
+                oseenView = std::make_unique<OseenView>(*oseen);
+                oseenView->prepare(window);
             } else {
-                // Handle the error
+                std::cerr << "Error: sharedData could not be cast to a known type." << std::endl;
             }
+            sharedData->startSimulation = false;
         }
 
-        // Check if the order parameter should be plotted
-        if (sharedData->shouldPlotOrderParameter) {
+        // Order parameter plotting
+        if (sharedData->shouldPlotOrderParameter && grid != nullptr) {
             grid->plotOrderParameter("order_parameter.png");
-            plotWindow = new PlotWindow("order_parameter.png");
+            plotWindow = std::make_unique<PlotWindow>("order_parameter.png");
             sharedData->shouldPlotOrderParameter = false;
         }
-        // Update and display the plot window if it exists
-        if (plotWindow != nullptr) {
-            if (plotWindow->isOpen()) {
-                plotWindow->update();  // Handle events and update the window
-                plotWindow->display();  // Display the window
-            } else {
-                delete plotWindow;
-                plotWindow = nullptr;
-            }
+
+        // PlotWindow update and display
+        if (plotWindow && plotWindow->isOpen()) {
+            plotWindow->update();
+            plotWindow->display();
+        } else {
+            plotWindow.reset();
         }
 
-        // Clear the window
+        // Window clearing
         window.clear();
 
-        if (sharedData->isSimulationRunning && grid != nullptr) {
-            view->renderSquares(window);
-        }
-        else if (sharedData->isSimulationRunning && oseen != nullptr) {
-            view->renderCircles(window);
+        // Rendering
+        if (sharedData->isSimulationRunning && (grid != nullptr || oseen != nullptr)) {
+            if (kuramotoView) kuramotoView->renderSquares(window);
+            else if (oseenView) oseenView->renderCircles(window);
         }
 
-        // Start the ImGui frame
+        // ImGui frame
         ImGui::SFML::Update(window, deltaClock.restart());
-        ui->render();  // Assuming this method encapsulates ImGui render calls
-
+        ui->render();
         ImGui::SFML::Render(window);
 
-        // Display the rendered frame
+        // Window display
         window.display();
 
-        if (!sharedData->isPaused && grid != nullptr) {
-            grid->updateGrid();
-        }
+        if (!sharedData->isPaused && (grid != nullptr || oseen != nullptr)) {
+            if (dynamic_cast<SharedDataKuramoto*>(sharedData.get())) {
+                grid->updateGrid();
+            } else if (dynamic_cast<SharedDataOseen*>(sharedData.get())) {
+                oseen->iteration();
+            } else {
+                std::cerr << "Error: sharedData could not be cast to a known type." << std::endl;
+            }
+        }   
     }
 
     ImGui::SFML::Shutdown();
@@ -156,7 +152,7 @@ void Application::promptForSimulationMode() {
             mode = SimulationMode::Kuramoto;
             modeWindow.close();
         }
-        if (ImGui::Button("Mode 2")) {
+        if (ImGui::Button("Oseen")) {
             mode = SimulationMode::Oseen;
             modeWindow.close();
         }

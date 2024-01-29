@@ -3,7 +3,6 @@
 #include "Oseen.hpp"
 
 // Initialize the system
-// Initialize the system
 Oseen::Oseen(SharedDataOseen& data) : sharedData(data) { // Changed variable name to 'data'
         
     data.startTime = std::chrono::high_resolution_clock::now();
@@ -17,6 +16,7 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data) { // Changed variable nam
     cilia_radius = data.cilia_radius;
     fluid_viscosity = 1;
     drag_coefficient = 6*M_PI*fluid_viscosity*cilia_radius;
+    grid_spacing = data.gridSpacing;
 
     positions = std::vector<std::vector<Eigen::Vector3d>>(data.width, std::vector<Eigen::Vector3d>(data.height, Eigen::Vector3d::Zero()));
     intrinsicFrequencies = std::vector<std::vector<double>>(data.width, std::vector<double>(data.height, 0.0));
@@ -47,8 +47,8 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data) { // Changed variable nam
 
 Eigen::Vector3d Oseen::initializePosition(int x, int y) {
     // Calculate the grid point
-    double gridX = x * sharedData.gridSpacing;
-    double gridY = y * sharedData.gridSpacing;
+    double gridX = x * grid_spacing;
+    double gridY = y * grid_spacing;
 
     switch (sharedData.noiseMode) {
         case NoiseMode::None: {
@@ -148,14 +148,14 @@ void Oseen::iteration() {
     unsigned int cilia_left_to_consider = N+1;
     // Reset velocities
     velocities = std::vector<std::vector<Eigen::Vector3d>>(width, std::vector<Eigen::Vector3d>(height, Eigen::Vector3d::Zero()));
+    // #pragma omp parallel for collapse(2) // Parallelize both x and y loops
     for (size_t x = 0; x < width; ++x) {
         for (size_t y = 0; y < height; ++y) {
             cilia_left_to_consider--;
             calculateVelocity(x, y, cilia_left_to_consider);
         }
     }
-
-    
+    updateAngles();
 }
 
 // Get velocity of cilia at position (x, y)
@@ -185,6 +185,7 @@ void Oseen::calculateVelocity(int x, int y, int break_point) {
 }
 
 void Oseen::updateAngles() {
+    #pragma omp parallel for collapse(2) // Parallelize both x and y loops
     for (size_t x = 0; x < width; ++x) {
         for (size_t y = 0; y < height; ++y) {
             double f_i = getForce(x, y);
@@ -208,6 +209,7 @@ void Oseen::updateAngles() {
             }
         }
     }
+    std::cout << angles[3][5] << std::endl;
 }
 
 double Oseen::getForce(int x, int y) {

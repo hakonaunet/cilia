@@ -1,7 +1,7 @@
 # Compiler and Flags
 CXX = g++
 #NVCC = nvcc
-CXXFLAGS = -std=c++20 -Wall -fopenmp -I/usr/include/python3.11 \
+CXXFLAGS = -g -std=c++20 -Wall -fopenmp -I/usr/include/python3.11 \
             -I/usr/local/include -I./imgui -I./imgui-sfml \
             -Iinclude -I/home/haakolau/.local/lib/python3.11/site-packages/pybind11/include \
             -I/usr/include/eigen3

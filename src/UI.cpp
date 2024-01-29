@@ -76,7 +76,6 @@ void UI::render() {
 
         // If noiseMode is not None, display a slider to manipulate noiseWidth
         if (oseenData->noiseMode != NoiseMode::None) {
-            ImGui::SameLine();
             ImGui::SliderFloat("noiseWidth", &oseenData->noiseWidth, 0.0f, oseenData->noiseWidthMax);
         }
 
@@ -103,13 +102,11 @@ void UI::render() {
 
         // If frequencyDistribution is Uniform, display a slider to manipulate epsilon
         if (oseenData->frequencyDistribution == FrequencyDistribution::Uniform) {
-            ImGui::SameLine();
             ImGui::SliderFloat("Epsilon", &oseenData->frequencyWidth, 0.0f, oseenData->frequencyWidthMax);
         }
 
         // If frequencyDistribution is Gaussian, display a slider to manipulate frequencyDeviation
         if (oseenData->frequencyDistribution == FrequencyDistribution::Gaussian) {
-            ImGui::SameLine();
             ImGui::SliderFloat("Frequency Deviation", &oseenData->frequencyDeviation, 0.0f, oseenData->frequencyDeviationMax);
         }
 
@@ -136,13 +133,11 @@ void UI::render() {
 
         // If angleDistribution is Uniform, display a slider to manipulate angleWidth
         if (oseenData->angleDistribution == AngleDistribution::Uniform) {
-            ImGui::SameLine();
             ImGui::SliderFloat("Angle Width", &oseenData->angleWidth, 0.0f, oseenData->angleWidthMax);
         }
 
         // If angleDistribution is Gaussian, display a slider to manipulate angleDeviation
         if (oseenData->angleDistribution == AngleDistribution::Gaussian) {
-            ImGui::SameLine();
             ImGui::SliderFloat("Angle Deviation", &oseenData->angleDeviation, 0.0f, oseenData->angleDeviationMax);
         }
     }

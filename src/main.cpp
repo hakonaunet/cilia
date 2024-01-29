@@ -1,12 +1,6 @@
-#include "Grid.hpp"
-#include "OscillatorView.hpp"
-#include "Application.hpp"
+// main.cpp
 
-// #include <SFML/Graphics.hpp>
-// #include <SFML/System/Clock.hpp>
-// #include <SFML/System/Sleep.hpp>
-// #include <../imgui/imgui.h>
-// #include <../imgui-sfml/imgui-SFML.h>
+#include "Application.hpp"
 
 #include <ctime>
 

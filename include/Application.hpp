@@ -13,6 +13,7 @@
 #include "SharedDataKuramoto.hpp"
 #include "SharedDataOseen.hpp"
 #include "OscillatorView.hpp"
+#include "OseenView.hpp"
 #include "Grid.hpp"
 #include "PlotWindow.hpp"
 #include "Oseen.hpp"

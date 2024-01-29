@@ -17,23 +17,3 @@ void OscillatorView::renderSquares(sf::RenderWindow& window) {
         }
     }
 }
-
-void OscillatorView::renderCircles(sf::RenderWindow& window) {
-    const auto& gridData = grid_.getGrid();
-    float cellWidth = window.getSize().x / static_cast<float>(gridData[0].size());
-    float cellHeight = window.getSize().y / static_cast<float>(gridData.size());
-
-    // Determine the size of the circle based on the smaller dimension of the cell
-    float radius = std::min(cellWidth, cellHeight) / 2.0f;
-
-    sf::CircleShape circle(radius);
-    circle.setOrigin(radius, radius); // Set the origin to the center of the circle for proper positioning
-
-    for (size_t i = 0; i < gridData.size(); ++i) {
-        for (size_t j = 0; j < gridData[i].size(); ++j) {
-            circle.setFillColor(angleToColor(gridData[i][j].getAngle()));
-            circle.setPosition(j * cellWidth + radius, i * cellHeight + radius); // Position the center of the circle
-            window.draw(circle);
-        }
-    }
-}
