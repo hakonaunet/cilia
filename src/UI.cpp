@@ -19,7 +19,7 @@ void UI::render() {
         }
         ImGui::SliderFloat("Epsilon", &kuramotoData->epsilon, 0.0f, 1.0f);
         if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("The width of the uniform distribution (centered around 1.0) of which each oscillator's intrinsic frequency is sampled from");
+                ImGui::SetTooltip("The width of the uniform distribution (centered around 1.0) of which each oscillator's intrinsic frequency is sampled from");
         }
         
         // ImGui drop down menu with options from the enum class 'Couplings'

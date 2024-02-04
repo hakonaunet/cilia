@@ -27,6 +27,12 @@ public:
     unsigned int getHeight() const { return height; }
     const std::vector<std::vector<Eigen::Vector3d>>& getPositions() const { return positions; }
     const std::vector<std::vector<double>>& getAngles() const { return angles; }
+    double getVelocityMagnitudeAtPoint(Eigen::Vector3d point);
+    Eigen::Vector3d getVelocityAtPoint(Eigen::Vector3d point);
+    Eigen::Vector3d getForce(int x, int y);
+    double getForceMagnitude(int x, int y);
+    Eigen::Vector3d getR(int x, int y);
+    Eigen::Vector3d getTangent(int x, int y);
 
 private:
     SharedDataOseen& sharedData;
@@ -46,8 +52,10 @@ private:
     Eigen::Vector3d initializePosition(int x, int y);
     double initializeFrequency();
     double initializeAngle();
-    void calculateVelocity(int x, int y, int break_point);
+    void calculateVelocity(size_t x, size_t y);
     void updateAngles();
-    double getForce(int x, int y);
+    Eigen::Vector3d stokeslet(int x_1, int y_1, int x_2, int y_2);
+    Eigen::Vector3d stokeslet(Eigen::Vector3d point, int x, int y);
+    void calcOmega();
     std::complex<double> calculateOrderParameter();
 };

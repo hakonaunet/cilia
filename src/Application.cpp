@@ -31,6 +31,9 @@ void Application::init() {
         } else {
             // Handle the error
         }
+    } else if (mode == SimulationMode::Test1) {
+        // Test1
+        test1();
     }
 }
 
@@ -102,7 +105,7 @@ void Application::run() {
         // Rendering
         if (sharedData->isSimulationRunning && (grid != nullptr || oseen != nullptr)) {
             if (kuramotoView) kuramotoView->renderSquares(window);
-            else if (oseenView) oseenView->renderCircles(window);
+            else if (oseenView) oseenView->renderLines(window);
         }
 
         // ImGui frame
@@ -154,6 +157,11 @@ void Application::promptForSimulationMode() {
         }
         if (ImGui::Button("Oseen")) {
             mode = SimulationMode::Oseen;
+            modeWindow.close();
+        }
+        if (ImGui::Button("Test1")) {
+            ImGui::SetTooltip("Verify symmetry around the cilia plane");
+            mode = SimulationMode::Test1;
             modeWindow.close();
         }
         ImGui::End();

@@ -17,11 +17,13 @@
 #include "Grid.hpp"
 #include "PlotWindow.hpp"
 #include "Oseen.hpp"
+#include "Tests.hpp"
 
 
 enum class SimulationMode {
     Kuramoto,
-    Oseen
+    Oseen,
+    Test1
 };
 
 class Application {
