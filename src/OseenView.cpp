@@ -49,7 +49,7 @@ void OseenView::renderLines(sf::RenderWindow& window) {
     // Draw the lines
     for (size_t i = 0; i < scaledPositions_.size(); ++i) {
         for (size_t j = 0; j < scaledPositions_[i].size(); ++j) {
-            sf::RectangleShape line(sf::Vector2f(scaledRadius_ * 2, scaledRadius_ / 2));
+            sf::RectangleShape line(sf::Vector2f(scaledRadius_, scaledRadius_ / 4));
             line.setOrigin(0, line.getSize().y / 2);
             line.setPosition(scaledPositions_[i][j]);
             line.setRotation(angles(i) * 180 / M_PI); // Convert angle from radians to degrees
