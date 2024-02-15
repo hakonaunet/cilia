@@ -18,15 +18,12 @@ void OseenView::prepare(const sf::RenderWindow& window) {
     const auto& positions = oseen_.getPositions();
 
     // Pre-calculate the scaled positions with padding
-    scaledPositions_.resize(positions.size());
-    for (size_t i = 0; i < positions.size(); ++i) {
-        scaledPositions_[i].resize(positions[i].size());
-        for (size_t j = 0; j < positions[i].size(); ++j) {
-            scaledPositions_[i][j] = sf::Vector2f(
-                positions[i][j][0] * scale + scaledRadius_,
-                positions[i][j][1] * scale + scaledRadius_
-            );
-        }
+    scaledPositions_.resize(positions.rows());
+    for (int i = 0; i < positions.rows(); ++i) {
+        scaledPositions_[i].push_back(sf::Vector2f(
+            positions(i, 0) * scale + scaledRadius_,
+            positions(i, 1) * scale + scaledRadius_
+        ));
     }
 }
 
@@ -40,7 +37,7 @@ void OseenView::renderCircles(sf::RenderWindow& window) {
     for (size_t i = 0; i < scaledPositions_.size(); ++i) {
         for (size_t j = 0; j < scaledPositions_[i].size(); ++j) {
             circle.setPosition(scaledPositions_[i][j]);
-            circle.setFillColor(angleToColor(angles[i][j]));
+            circle.setFillColor(angleToColor(angles(i)));
             window.draw(circle);
         }
     }
@@ -55,8 +52,8 @@ void OseenView::renderLines(sf::RenderWindow& window) {
             sf::RectangleShape line(sf::Vector2f(scaledRadius_ * 2, scaledRadius_ / 2));
             line.setOrigin(0, line.getSize().y / 2);
             line.setPosition(scaledPositions_[i][j]);
-            line.setRotation(angles[i][j] * 180 / M_PI); // Convert angle from radians to degrees
-            line.setFillColor(angleToColor(angles[i][j]));
+            line.setRotation(angles(i) * 180 / M_PI); // Convert angle from radians to degrees
+            line.setFillColor(angleToColor(angles(i)));
             window.draw(line);
         }   
     }

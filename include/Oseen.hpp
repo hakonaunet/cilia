@@ -25,8 +25,8 @@ public:
     double getGridSpacing() const { return grid_spacing; }
     unsigned int getWidth() const { return width; }
     unsigned int getHeight() const { return height; }
-    const std::vector<std::vector<Eigen::Vector3d>>& getPositions() const { return positions; }
-    const std::vector<std::vector<double>>& getAngles() const { return angles; }
+    const Eigen::MatrixX3d& getPositions() const { return positions; }
+    const Eigen::MatrixXd& getAngles() const { return angles; }
     double getVelocityMagnitudeAtPoint(Eigen::Vector3d point);
     Eigen::Vector3d getVelocityAtPoint(Eigen::Vector3d point);
     Eigen::Vector3d getForce(int x, int y);
@@ -40,10 +40,10 @@ private:
     unsigned int width, height, N;
     double z, force, mu, cilia_radius, fluid_viscosity, drag_coefficient, grid_spacing;
     
-    std::vector<std::vector<Eigen::Vector3d>> positions;
-    std::vector<std::vector<Eigen::Vector3d>> velocities;
-    std::vector<std::vector<double>> intrinsicFrequencies;
-    std::vector<std::vector<double>> angles;
+    Eigen::MatrixX3d positions;
+    Eigen::MatrixX3d velocities;
+    Eigen::MatrixXd intrinsicFrequencies;
+    Eigen::MatrixXd angles;
 
     bool findOrderParameter;
     std::vector<double> simulationTimes;
@@ -52,6 +52,7 @@ private:
     Eigen::Vector3d initializePosition(int x, int y);
     double initializeFrequency();
     double initializeAngle();
+    void updateVelocities();
     void calculateVelocity(size_t x, size_t y);
     void updateAngles();
     Eigen::Vector3d stokeslet(int x_1, int y_1, int x_2, int y_2);

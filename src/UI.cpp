@@ -47,8 +47,15 @@ void UI::render() {
     // Check if sharedData is of type SharedDataOseen
     SharedDataOseen* oseenData = dynamic_cast<SharedDataOseen*>(sharedData);
     if (oseenData != nullptr) {
+        static bool independentHeight = false;
         ImGui::SliderInt("Width", &oseenData->width, 1, 1350);
-        ImGui::SliderInt("Height", &oseenData->height, 1, 1350);
+        ImGui::SameLine();
+        ImGui::Checkbox("Height", &independentHeight);
+        if (independentHeight) {
+            ImGui::SliderInt("Height", &oseenData->height, 1, 1350);
+        } else {
+            oseenData->height = oseenData->width;
+        }
         ImGui::SliderFloat("Grid Spacing", &oseenData->gridSpacing, 1.0f, 10.0f);
         ImGui::SliderFloat("Cilia Radius", &oseenData->cilia_radius, 0.0f, 5.0f);
         ImGui::SliderFloat("Force Amplitude", &oseenData->force_amplitude, 0.0f, oseenData->force);

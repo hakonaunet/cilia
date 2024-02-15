@@ -3,7 +3,8 @@
 #include "Oseen.hpp"
 
 // Initialize the system
-Oseen::Oseen(SharedDataOseen& data) : sharedData(data) { // Changed variable name to 'data'
+Oseen::Oseen(SharedDataOseen& data) : sharedData(data), positions(data.width * data.height, 3), velocities(data.width * data.height, 3),
+    intrinsicFrequencies(data.width, data.height), angles(data.width, data.height) {
         
     data.startTime = std::chrono::high_resolution_clock::now();
 
@@ -18,18 +19,14 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data) { // Changed variable nam
     drag_coefficient = 6*M_PI*fluid_viscosity*cilia_radius;
     grid_spacing = data.gridSpacing;
 
-    positions = std::vector<std::vector<Eigen::Vector3d>>(data.width, std::vector<Eigen::Vector3d>(data.height, Eigen::Vector3d::Zero()));
-    intrinsicFrequencies = std::vector<std::vector<double>>(data.width, std::vector<double>(data.height, 0.0));
-    angles = std::vector<std::vector<double>>(data.width, std::vector<double>(data.height, 0.0));
-    velocities = std::vector<std::vector<Eigen::Vector3d>>(data.width, std::vector<Eigen::Vector3d>(data.height, Eigen::Vector3d::Zero()));
-
     // Parse through the positions and set the initial values
     for (size_t i = 0; i < width; ++i) {
         for (size_t j = 0; j < height; ++j) {
-
-            positions[i][j] = initializePosition(i, j);
-            intrinsicFrequencies[i][j] = initializeFrequency();
-            angles[i][j] = initializeAngle();
+            size_t index = i * height + j;
+            positions.row(index) = initializePosition(i, j);
+            velocities.row(index).setZero(); // Assuming you start with zero velocity
+            intrinsicFrequencies(i, j) = initializeFrequency();
+            angles(i, j) = initializeAngle();
         }
     }
 
@@ -149,15 +146,7 @@ void Oseen::iteration() {
     sharedData.iteration++; // Update frame count
     auto startTime = std::chrono::high_resolution_clock::now(); // Start measuring time
 
-    // Reset velocities
-    velocities = std::vector<std::vector<Eigen::Vector3d>>(width, std::vector<Eigen::Vector3d>(height, Eigen::Vector3d::Zero()));
-
-    #pragma omp parallel for collapse(2) // Parallelize both x and y loops
-    for (size_t x = 0; x < width; ++x) {
-        for (size_t y = 0; y < height; ++y) {
-            calculateVelocity(x, y);
-        }
-    }
+    updateVelocities();
     updateAngles();
 
     auto endTime = std::chrono::high_resolution_clock::now();
@@ -165,15 +154,24 @@ void Oseen::iteration() {
     sharedData.updateTime = static_cast<double>(duration.count());
 }
 
+void Oseen::updateVelocities() {
+    velocities.setZero();
+    #pragma omp parallel for collapse(2) // Parallelize both x and y loops
+    for (size_t x = 0; x < width; ++x) {
+        for (size_t y = 0; y < height; ++y) {
+            calculateVelocity(x, y);
+        }
+    }
+}
+
 // Get velocity of cilia at position (x, y)
 void Oseen::calculateVelocity(size_t x, size_t y) {
     Eigen::Vector3d r_i = getR(x, y);
     for (size_t i = 0; i < width; ++i) {
         for (size_t j = 0; j < height; ++j) {
-            if (i == x && j == y) {
-                continue;
-            }
-            velocities[x][y] += stokeslet(r_i, i, j);
+            if (i == x && j == y) continue;
+            // Directly add the result of stokeslet to the corresponding row
+            velocities.block<1, 3>(x * height + y, 0) += stokeslet(r_i, i, j);
         }
     }
 }
@@ -183,33 +181,21 @@ void Oseen::updateAngles() {
     for (size_t x = 0; x < width; ++x) {
         for (size_t y = 0; y < height; ++y) {
             double f_i = getForceMagnitude(x, y);
-            Eigen::Vector3d t_i = Eigen::Vector3d(-sin(angles[x][y]), cos(angles[x][y]), 0);
+            Eigen::Vector3d t_i = Eigen::Vector3d(-sin(angles(x, y)), cos(angles(x, y)), 0);
             double omega_i = f_i / (drag_coefficient * cilia_radius);
-            double dot_product = t_i.dot(velocities[x][y]);
+            Eigen::Vector3d velocity_at_xy = velocities.row(x * height + y); // Assuming linear indexing
+            double dot_product = t_i.dot(velocity_at_xy);
 
             // Runge-Kutta 4 method
             double k1 = sharedData.deltaTime * (omega_i + dot_product / cilia_radius);
-            double k2 = sharedData.deltaTime * (omega_i + (dot_product + 0.5 * sharedData.deltaTime * k1) / cilia_radius);
-            double k3 = sharedData.deltaTime * (omega_i + (dot_product + 0.5 * sharedData.deltaTime * k2) / cilia_radius);
-            double k4 = sharedData.deltaTime * (omega_i + (dot_product + sharedData.deltaTime * k3) / cilia_radius);
 
-            angles[x][y] += (k1 + 2*k2 + 2*k3 + k4) / 6;
+            angles(x, y) += k1;
 
             // Ensure the angle is between 0 and 2π
-            if (angles[x][y] < 0) {
-                angles[x][y] += 2 * M_PI;
-            } else if (angles[x][y] >= 2 * M_PI) {
-                angles[x][y] -= 2 * M_PI;
-            }
+            while (angles(x, y) < 0) angles(x, y) += 2 * M_PI;
+            while (angles(x, y) >= 2 * M_PI) angles(x, y) -= 2 * M_PI;
         }
     }
-}
-
-Eigen::Vector3d Oseen::stokeslet(int x_1, int y_1, int x_2, int y_2) {
-    Eigen::Vector3d f_2 = getForce(x_2, y_2);
-    Eigen::Vector3d r = getR(x_1, y_1) - getR(x_2, y_2);
-    double r_length = r.norm();
-    return (1/(8*M_PI*mu*r_length)) * (f_2 + (r.dot(f_2)/(r_length*r_length)) * r);
 }
 
 Eigen::Vector3d Oseen::stokeslet(Eigen::Vector3d point, int x, int y){
@@ -219,20 +205,28 @@ Eigen::Vector3d Oseen::stokeslet(Eigen::Vector3d point, int x, int y){
     return (1/(8*M_PI*mu*r_length)) * (f_2 + (r.dot(f_2)/(r_length*r_length)) * r);
 }
 
+Eigen::Vector3d Oseen::stokeslet(int x_1, int y_1, int x_2, int y_2) {
+    Eigen::Vector3d f_2 = getForce(x_2, y_2);
+    Eigen::Vector3d r = getR(x_1, y_1) - getR(x_2, y_2);
+    double r_length = r.norm();
+    return (1/(8*M_PI*mu*r_length)) * (f_2 + (r.dot(f_2)/(r_length*r_length)) * r);
+}
+
 Eigen::Vector3d Oseen::getForce(int x, int y) {
     return getForceMagnitude(x, y) * getTangent(x, y);
 }
 
 double Oseen::getForceMagnitude(int x, int y) {
-    return sharedData.force + sharedData.force_amplitude*sin(angles[x][y]);
+    return sharedData.force + sharedData.force_amplitude*sin(angles(x,y));
 }
 
 Eigen::Vector3d Oseen::getR(int x, int y) {
-    return positions[x][y] + cilia_radius * Eigen::Vector3d(cos(angles[x][y]), sin(angles[x][y]), 0);
+    Eigen::Vector3d pos_at_xy = positions.row(x * height + y); // Assuming linear indexing for positions
+    return pos_at_xy + cilia_radius * Eigen::Vector3d(cos(angles(x, y)), sin(angles(x, y)), 0);
 }
 
 Eigen::Vector3d Oseen::getTangent(int x, int y) {
-    return Eigen::Vector3d(-sin(angles[x][y]), cos(angles[x][y]), 0);
+    return Eigen::Vector3d(-sin(angles(x, y)), cos(angles(x, y)), 0);
 }
 
 double Oseen::getVelocityMagnitudeAtPoint(Eigen::Vector3d point) {
@@ -253,12 +247,11 @@ Eigen::Vector3d Oseen::getVelocityAtPoint(Eigen::Vector3d point) {
 std::complex<double> Oseen::calculateOrderParameter() {
     double realPart = 0.0;
     double imagPart = 0.0;
-    int N = angles.size() * angles[0].size(); // Total number of oscillators
 
     #pragma omp parallel for collapse(2) // Parallelize both x and y loops
-    for (size_t x = 0; x < angles.size(); x++) {
-        for (size_t y = 0; y < angles[0].size(); y++) {
-            double theta = angles[x][y];
+    for (size_t x = 0; x < width; x++) {
+        for (size_t y = 0; y < height; y++) {
+            double theta = angles(x,y);
             double cos_theta = std::cos(theta);
             double sin_theta = std::sin(theta);
             #pragma omp atomic
