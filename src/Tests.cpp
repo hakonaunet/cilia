@@ -4,8 +4,8 @@
 
 void test1() {
     SharedDataOseen sharedData_;
-    sharedData_.width = 2;
-    sharedData_.height = 1;
+    sharedData_.width = 7;
+    sharedData_.height = 4;
     Oseen oseen_(sharedData_);
     std::vector<double> dataPoints;
     for (int i = 0; i < 100; i++) {
