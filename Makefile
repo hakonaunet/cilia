@@ -1,25 +1,25 @@
 # Compiler and Flags
 CXX = g++
-#NVCC = nvcc
+NVCC = nvcc
 CXXFLAGS = -O3 -march=native -std=c++20 -Wall -fopenmp -flto \
             -I/usr/include/python3.11 \
             -I/usr/local/include -I./imgui -I./imgui-sfml -I./implot \
             -Iinclude -I/home/haakolau/.local/lib/python3.11/site-packages/pybind11/include \
             -I/usr/include/eigen3
 
-# NVCCFLAGS = -I/usr/local/cuda/include -I/usr/include/python3.11 \
-#             -I/usr/local/include -I./imgui -I./imgui-sfml \
-#             -Iinclude -I/home/haakolau/.local/lib/python3.11/site-packages/pybind11/include \
-#             -I/usr/include/eigen3
+NVCCFLAGS = -I/usr/local/cuda/include -I/usr/include/python3.11 \
+            -I/usr/local/include -I./imgui -I./imgui-sfml \
+            -Iinclude -I/home/haakolau/.local/lib/python3.11/site-packages/pybind11/include \
+	    	-I/usr/include/eigen3
 
-# CUDA_LIB_PATH = /usr/local/cuda/lib64
-LFLAGS = -fopenmp -flto $(LIBS) #-L$(CUDA_LIB_PATH) -lcudart
+CUDA_LIB_PATH = /usr/local/cuda/lib64
+LFLAGS = -fopenmp -flto $(LIBS) -L$(CUDA_LIB_PATH) -lcudart
 
 # Directories
 SRC_DIR = src
 OBJ_DIR = obj
 INCLUDE_DIR = include
-#CUDA_SRC_DIR = cuda_src
+CUDA_SRC_DIR = cuda_src
 
 # Libraries
 OPENGL_LIBS = -lGL
@@ -31,9 +31,9 @@ LIBS = -L/usr/local/lib $(SFML) $(OPENGL_LIBS) $(PYTHON_LIB)
 IMGUI_SRC = $(wildcard ./imgui/*.cpp) $(wildcard ./imgui-sfml/*.cpp)
 IMPLOT_SRC = $(wildcard ./implot/*.cpp)
 SRC = $(wildcard $(SRC_DIR)/*.cpp)
-#CUDA_SRC = $(wildcard $(CUDA_SRC_DIR)/*.cu)
+CUDA_SRC = $(wildcard $(CUDA_SRC_DIR)/*.cu)
 OBJ = $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o) $(IMGUI_SRC:%.cpp=%.o)
-# OBJ = $(SRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o) $(CUDA_SRC:$(CUDA_SRC_DIR)/%.cu=$(OBJ_DIR)/%.o) $(IMGUI_SRC:%.cpp=%.o)
+OBJ = $(CUDA_SRC:$(CUDA_SRC_DIR)/%.cu=$(OBJ_DIR)/%.o) $(IMGUI_SRC:%.cpp=%.o)
 
 # Executable Name
 EXEC = Kuramoto

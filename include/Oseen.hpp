@@ -11,6 +11,7 @@
 
 #include <Eigen/Dense>
 #include <omp.h>
+#include <cuda_runtime.h>
 
 #include "SharedDataOseen.hpp"
 
@@ -51,6 +52,8 @@ private:
     std::vector<double> simulationTimes_;
     std::vector<std::complex<double>> orderParameters_;
     
+    void initializeCUDA();
+
     Eigen::Vector3d initializePosition(int x, int y);
     double initializeFrequency();
     double initializeAngle();

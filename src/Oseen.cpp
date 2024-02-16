@@ -55,14 +55,14 @@ Eigen::Vector3d Oseen::initializePosition(int x, int y) {
         }
         case NoiseMode::Square: {
             // Generate a random position within a square centered at the grid point
-            double noiseX = (std::rand() / (double)RAND_MAX - 0.5) * sharedData.noiseWidthMax * 2;
-            double noiseY = (std::rand() / (double)RAND_MAX - 0.5) * sharedData.noiseWidthMax * 2;
+            double noiseX = (std::rand() / (double)RAND_MAX - 0.5) * sharedData.noiseWidth * 2;
+            double noiseY = (std::rand() / (double)RAND_MAX - 0.5) * sharedData.noiseWidth * 2;
             return Eigen::Vector3d(gridX + noiseX, gridY + noiseY, z_);
         }
         case NoiseMode::Circular: {
             // Generate a random angle and a random radius
             double angle = (std::rand() / (double)RAND_MAX) * 2 * M_PI;
-            double radius = std::sqrt(std::rand() / (double)RAND_MAX) * sharedData.noiseWidthMax;
+            double radius = std::sqrt(std::rand() / (double)RAND_MAX) * sharedData.noiseWidth;
 
             // Convert polar coordinates to Cartesian coordinates
             double noiseX = radius * std::cos(angle);
@@ -76,6 +76,32 @@ Eigen::Vector3d Oseen::initializePosition(int x, int y) {
             return Eigen::Vector3d(gridX, gridY, z_);
         }
     }
+}
+
+void Oseen::initializeCUDA() {
+    // Allocate memory on the GPU
+    cudaMalloc(&d_pos_x, N_ * sizeof(double));
+    cudaMalloc(&d_pos_y, N_ * sizeof(double));
+    cudaMalloc(&d_pos_z, N_ * sizeof(double));
+    cudaMalloc(&d_angles, N_ * sizeof(double));
+
+    // Create temporary vectors to hold the positions
+    std::vector<double> pos_x(N_);
+    std::vector<double> pos_y(N_);
+    std::vector<double> pos_z(N_);
+
+    // Copy data from positions_ to the temporary vectors
+    for (int i = 0; i < N_; ++i) {
+        pos_x[i] = positions_(i, 0);
+        pos_y[i] = positions_(i, 1);
+        pos_z[i] = positions_(i, 2);
+    }
+
+    // Copy initial data to the GPU
+    cudaMemcpy(d_pos_x, pos_x.data(), N_ * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_pos_y, pos_y.data(), N_ * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_pos_z, pos_z.data(), N_ * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_angles, angles_.data(), N_ * sizeof(double), cudaMemcpyHostToDevice);
 }
 
 double Oseen::initializeFrequency() {
@@ -210,6 +236,7 @@ void Oseen::rungeKutta4() {
 void Oseen::calculateStep(Eigen::MatrixXd& angles, Eigen::MatrixXd& result, double dt) {
     updateVelocities(angles);
     // Iterate across every angle
+    #pragma omp parallel for collapse(2) // Parallelize both x and y loops
     for (size_t x = 0; x < width_; ++x) {
         for (size_t y = 0; y < height_; ++y) {
             result(x,y) = dt*f(x, y, angles);
