@@ -8,7 +8,9 @@
                 "${workspaceFolder}/imgui-sfml",
                 "${workspaceFolder}/src",
                 "${workspaceFolder}/include",
-                "${workspaceFolder}/cuda_src"
+                "${workspaceFolder}/cuda_src",
+                "${workspaceFolder}/include",
+                "/usr/local/cuda/include"
             ],
             "defines": [],
             "cStandard": "c17",

@@ -15,6 +15,7 @@ public:
     void prepare(const sf::RenderWindow& window);
     void renderCircles(sf::RenderWindow& window);
     void renderLines(sf::RenderWindow& window);
+    void renderSquares(sf::RenderWindow& window);
 
 private:
     const Oseen& oseen_;

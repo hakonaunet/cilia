@@ -48,11 +48,11 @@ void UI::render() {
     SharedDataOseen* oseenData = dynamic_cast<SharedDataOseen*>(sharedData);
     if (oseenData != nullptr) {
         static bool independentHeight = false;
-        ImGui::SliderInt("Width", &oseenData->width, 1, 1350);
+        ImGui::SliderInt("Width", &oseenData->width, 1, 400);
         ImGui::SameLine();
         ImGui::Checkbox("Height", &independentHeight);
         if (independentHeight) {
-            ImGui::SliderInt("Height", &oseenData->height, 1, 1350);
+            ImGui::SliderInt("Height", &oseenData->height, 1, 400);
         } else {
             oseenData->height = oseenData->width;
         }

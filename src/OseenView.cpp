@@ -58,3 +58,19 @@ void OseenView::renderLines(sf::RenderWindow& window) {
         }   
     }
 }
+
+void OseenView::renderSquares(sf::RenderWindow& window) {
+    const auto& positions = oseen_.getPositions();
+    double scale = std::min(window.getSize().x / (oseen_.getGridSpacing() * oseen_.getWidth()),
+                            window.getSize().y / (oseen_.getGridSpacing() * oseen_.getHeight()));
+    sf::RectangleShape rectangle(sf::Vector2f(scale, scale));
+    const auto& angles = oseen_.getAngles();
+
+    for (Eigen::Index i = 0; i < positions.rows(); ++i) {
+        for (Eigen::Index j = 0; j < scaledPositions_[i].size(); ++j) {
+            rectangle.setFillColor(angleToColor(angles(i)));
+            rectangle.setPosition(scaledPositions_[i][j]);
+            window.draw(rectangle);
+        }
+    }
+}

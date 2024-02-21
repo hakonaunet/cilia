@@ -105,7 +105,7 @@ void Application::run() {
         // Rendering
         if (sharedData->isSimulationRunning && (grid != nullptr || oseen != nullptr)) {
             if (kuramotoView) kuramotoView->renderSquares(window);
-            else if (oseenView) oseenView->renderLines(window);
+            else if (oseenView) oseenView->renderSquares(window);
         }
 
         // ImGui frame

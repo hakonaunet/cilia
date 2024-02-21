@@ -14,11 +14,11 @@ struct SharedDataOseen : public SharedData {
     FrequencyDistribution frequencyDistribution;
     AngleDistribution angleDistribution;
 
-    SharedDataOseen() : SharedData(), width(2), height(1), gridSpacing(4), frequencyWidth(0.1), noiseWidth(0), frequencyDeviation(0.1), 
-                    angleDeviation(0.1), angleWidth(M_PI), cilia_radius(1), force_amplitude(0.2), noiseWidthMax(2), frequencyWidthMax(1), 
-                    frequencyDeviationMax(1), angleWidthMax(M_PI), angleDeviationMax(1), force(1), 
+    SharedDataOseen() : SharedData(), width(2), height(1), gridSpacing(1), frequencyWidth(0.1), noiseWidth(0), frequencyDeviation(0.1), 
+                    angleDeviation(0.1), angleWidth(M_PI), cilia_radius(0.2), force_amplitude(0.5), noiseWidthMax(2), frequencyWidthMax(1), 
+                    frequencyDeviationMax(1), angleWidthMax(M_PI), angleDeviationMax(1), force(1.5), 
                     noiseMode(NoiseMode::None), frequencyDistribution(FrequencyDistribution::None), angleDistribution(AngleDistribution::Uniform) {
-        deltaTime = 0.007;
+        deltaTime = 0.005;
         reset();
     }
     void reset() override {

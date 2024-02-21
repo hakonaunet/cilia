@@ -14,18 +14,22 @@
 #include <cuda_runtime.h>
 
 #include "SharedDataOseen.hpp"
+#include "Oseen.cuh"
+#include "OseenParameters.hpp"
 
 class Oseen {
 public:
     Oseen(SharedDataOseen& data);
 
+    ~Oseen();
+
     void iteration();
     void plotOrderParameter(std::string filename) const;
 
-    double getCiliaRadius() const { return cilia_radius_; }
-    double getGridSpacing() const { return grid_spacing_; }
-    unsigned int getWidth() const { return width_; }
-    unsigned int getHeight() const { return height_; }
+    double getCiliaRadius() const { return params.cilia_radius; }
+    double getGridSpacing() const { return params.grid_spacing; }
+    unsigned int getWidth() const { return params.width; }
+    unsigned int getHeight() const { return params.height; }
     const Eigen::MatrixX3d& getPositions() const { return positions_; }
     const Eigen::MatrixXd& getAngles() const { return angles_; }
     double getVelocityMagnitudeAtPoint(Eigen::Vector3d point, Eigen::MatrixXd& angles);
@@ -39,8 +43,7 @@ public:
 private:
     SharedDataOseen& sharedData;
 
-    unsigned int width_, height_, N_;
-    double z_, force_, mu_, cilia_radius_, fluid_viscosity_, drag_coefficient_, grid_spacing_;
+    OseenParameters params;
     
     Eigen::MatrixX3d positions_;
     Eigen::MatrixX3d velocities_;
@@ -52,8 +55,6 @@ private:
     std::vector<double> simulationTimes_;
     std::vector<std::complex<double>> orderParameters_;
     
-    void initializeCUDA();
-
     Eigen::Vector3d initializePosition(int x, int y);
     double initializeFrequency();
     double initializeAngle();
@@ -67,4 +68,16 @@ private:
     Eigen::Vector3d stokeslet(Eigen::Vector3d point, int x, int y, Eigen::MatrixXd& angles);
     void calcOmega();
     std::complex<double> calculateOrderParameter();
+    
+    // CUDA
+    double* d_angles, *d_pos_x, *d_pos_y, *d_velocities_x, *d_velocities_y;
+    OseenParameters* d_params;
+
+    void checkCudaError(cudaError_t err, const char* operation);
+    void initializeCUDA();
+    void updateCUDA();
+    void freeCUDA();
+    void CUDArungeKutta4();
+    void CUDAcalculateStep(Eigen::MatrixXd& angles, Eigen::MatrixXd& result, double dt);
+    void CUDAupdateVelocities(Eigen::MatrixXd& angles);
 };
