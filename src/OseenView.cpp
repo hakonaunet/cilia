@@ -67,7 +67,7 @@ void OseenView::renderSquares(sf::RenderWindow& window) {
     const auto& angles = oseen_.getAngles();
 
     for (Eigen::Index i = 0; i < positions.rows(); ++i) {
-        for (Eigen::Index j = 0; j < scaledPositions_[i].size(); ++j) {
+        for (std::vector<sf::Vector2<float>>::size_type j = 0; j < scaledPositions_[i].size(); ++j) {
             rectangle.setFillColor(angleToColor(angles(i)));
             rectangle.setPosition(scaledPositions_[i][j]);
             window.draw(rectangle);

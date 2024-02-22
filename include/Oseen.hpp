@@ -61,6 +61,7 @@ private:
     void updateVelocities(Eigen::MatrixXd& angles);
     void calculateVelocity(size_t x, size_t y, Eigen::MatrixXd& angles);
     void updateAngles();
+    void normalizeAngles(Eigen::MatrixXd& angles);
     void rungeKutta4();
     void calculateStep(Eigen::MatrixXd& angles, Eigen::MatrixXd& result, double dt);
     double f(double x, double y, Eigen::MatrixXd& angles);

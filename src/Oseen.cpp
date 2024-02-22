@@ -208,6 +208,9 @@ void Oseen::freeCUDA() {
 }
 
 void Oseen::CUDAupdateVelocities(Eigen::MatrixXd& angles) {
+    // Copy angles to the GPU
+    checkCudaError(cudaMemcpy(d_angles, angles.data(), params.N * sizeof(double), cudaMemcpyHostToDevice), "cudaMemcpy angles");
+
     // Launch the kernel
     launchCalculateVelocityKernel(d_pos_x, d_pos_y, d_angles, d_velocities_x, d_velocities_y, d_params, params.N);
     
@@ -236,13 +239,17 @@ void Oseen::CUDAupdateVelocities(Eigen::MatrixXd& angles) {
 void Oseen::CUDArungeKutta4() {
     CUDAcalculateStep(angles_, k1_, sharedData.deltaTime);
     tempAngles_ = angles_ + 0.5 * k1_;
+    normalizeAngles(tempAngles_);
     CUDAcalculateStep(tempAngles_, k2_, sharedData.deltaTime);
     tempAngles_ = angles_ + 0.5 * k2_;
+    normalizeAngles(tempAngles_);
     CUDAcalculateStep(tempAngles_, k3_, sharedData.deltaTime);
     tempAngles_ = angles_ + k3_;
+    normalizeAngles(tempAngles_);
     CUDAcalculateStep(tempAngles_, k4_, sharedData.deltaTime);
     angles_ += (k1_ + 2*k2_ + 2*k3_ + k4_) / 6;
-    std::cout << "Angles (5,5): " << angles_(5,5) << std::endl;
+    normalizeAngles(angles_);
+    std::cout << "Velocities (5,5): " << velocities_.row(5 * params.height + 5) << std::endl;
 }
 
 void Oseen::CUDAcalculateStep(Eigen::MatrixXd& angles, Eigen::MatrixXd& result, double dt) {
@@ -310,15 +317,26 @@ void Oseen::updateAngles() {
     }
 }
 
+void Oseen::normalizeAngles(Eigen::MatrixXd& angles) {
+    angles.array() = angles.array().unaryExpr([](double val) { 
+        val = std::fmod(val, 2 * M_PI);
+        return val < 0 ? val + 2 * M_PI : val; 
+    });
+}
+
 void Oseen::rungeKutta4() {
     calculateStep(angles_, k1_, sharedData.deltaTime);
     tempAngles_ = angles_ + 0.5 * k1_;
+    normalizeAngles(tempAngles_);
     calculateStep(tempAngles_, k2_, sharedData.deltaTime);
     tempAngles_ = angles_ + 0.5 * k2_;
+    normalizeAngles(tempAngles_);
     calculateStep(tempAngles_, k3_, sharedData.deltaTime);
     tempAngles_ = angles_ + k3_;
+    normalizeAngles(tempAngles_);
     calculateStep(tempAngles_, k4_, sharedData.deltaTime);
     angles_ += (k1_ + 2*k2_ + 2*k3_ + k4_) / 6;
+    normalizeAngles(angles_);
 }
 
 void Oseen::calculateStep(Eigen::MatrixXd& angles, Eigen::MatrixXd& result, double dt) {
