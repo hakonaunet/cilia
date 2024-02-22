@@ -47,7 +47,6 @@ private:
     
     Eigen::MatrixX3d positions_;
     Eigen::MatrixX3d velocities_;
-    Eigen::MatrixXd intrinsicFrequencies_;
     Eigen::MatrixXd angles_, tempAngles_;
     Eigen::MatrixXd k1_, k2_, k3_, k4_;
     
@@ -56,7 +55,6 @@ private:
     std::vector<std::complex<double>> orderParameters_;
     
     Eigen::Vector3d initializePosition(int x, int y);
-    double initializeFrequency();
     double initializeAngle();
     void updateVelocities(Eigen::MatrixXd& angles);
     void calculateVelocity(size_t x, size_t y, Eigen::MatrixXd& angles);

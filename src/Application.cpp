@@ -42,7 +42,7 @@ void Application::run() {
     sf::Vector2f windowsize(1350, 1350);
     int oscillatorSize = 30;
     sf::RenderWindow window(sf::VideoMode(windowsize.x, windowsize.y), "Simulation");
-    window.setPosition(sf::Vector2i(7500, 0));
+    window.setPosition(sf::Vector2i(3000, 0));
 
     // ImGui initialization
     if (!ImGui::SFML::Init(window)) {

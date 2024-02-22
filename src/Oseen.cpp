@@ -4,7 +4,7 @@
 
 // Initialize the system
 Oseen::Oseen(SharedDataOseen& data) : sharedData(data), positions_(data.width * data.height, 3), velocities_(data.width * data.height, 3),
-    intrinsicFrequencies_(data.width, data.height), angles_(data.width, data.height), tempAngles_(data.width, data.height), 
+    angles_(data.width, data.height), tempAngles_(data.width, data.height), 
     k1_(data.width, data.height), k2_(data.width, data.height), k3_(data.width, data.height), k4_(data.width, data.height) {
         
     data.startTime = std::chrono::high_resolution_clock::now();
@@ -26,7 +26,6 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data), positions_(data.width * 
             size_t index = i * params.height + j;
             positions_.row(index) = initializePosition(i, j);
             velocities_.row(index).setZero(); // Assuming you start with zero velocity
-            intrinsicFrequencies_(i, j) = initializeFrequency();
             angles_(i, j) = initializeAngle();
         }
     }
@@ -79,31 +78,6 @@ Eigen::Vector3d Oseen::initializePosition(int x, int y) {
         default: {
             // Handle other cases if necessary
             return Eigen::Vector3d(gridX, gridY, params.z);
-        }
-    }
-}
-
-
-double Oseen::initializeFrequency() {
-    double defaultFrequency = 1.0;
-    switch (sharedData.frequencyDistribution) {
-        case FrequencyDistribution::None: {
-            // Return the default frequency
-            return defaultFrequency;
-        }
-        case FrequencyDistribution::Uniform: {
-            // Generate a random frequency between defaultFrequency - frequencywidth_ and defaultFrequency + frequencywidth_
-            return defaultFrequency - sharedData.frequencyWidth + (std::rand() / (double)RAND_MAX) * 2 * sharedData.frequencyWidth;
-        }
-        case FrequencyDistribution::Gaussian: {
-            // Generate a random frequency using a Gaussian distribution
-            std::default_random_engine generator;
-        std::normal_distribution<double> distribution(defaultFrequency, sharedData.frequencyDeviation);
-            return distribution(generator);
-        }
-        default: {
-            // Handle other cases if necessary
-            return defaultFrequency;
         }
     }
 }
@@ -192,6 +166,10 @@ void Oseen::updateCUDA() {
     params.deltaTime = sharedData.deltaTime;
     params.force = sharedData.force;
     params.force_amplitude = sharedData.force_amplitude;
+    params.alfa1 = sharedData.alfa1;
+    params.beta1 = sharedData.beta1;
+    params.alfa2 = sharedData.alfa2;
+    params.beta2 = sharedData.beta2;
 
     // Copy the updated parameters to the device
     checkCudaError(cudaMemcpy(d_params, &params, sizeof(OseenParameters), cudaMemcpyHostToDevice), "cudaMemcpy d_params");
@@ -249,7 +227,6 @@ void Oseen::CUDArungeKutta4() {
     CUDAcalculateStep(tempAngles_, k4_, sharedData.deltaTime);
     angles_ += (k1_ + 2*k2_ + 2*k3_ + k4_) / 6;
     normalizeAngles(angles_);
-    std::cout << "Velocities (5,5): " << velocities_.row(5 * params.height + 5) << std::endl;
 }
 
 void Oseen::CUDAcalculateStep(Eigen::MatrixXd& angles, Eigen::MatrixXd& result, double dt) {
@@ -378,7 +355,9 @@ Eigen::Vector3d Oseen::getForce(int x, int y, Eigen::MatrixXd& angles) {
 }
 
 double Oseen::getForceMagnitude(int x, int y, Eigen::MatrixXd& angles) {
-    return sharedData.force + sharedData.force_amplitude*sin(angles(x,y))+sharedData.force_amplitude*cos(angles(x,y))+sharedData.force_amplitude*sin(2*angles(x,y))+sharedData.force_amplitude*cos(2*angles(x,y));
+    double cos_angle = cos(angles(x,y));
+    double sin_angle = sin(angles(x,y));
+    return sharedData.force + sharedData.alfa1*cos_angle + sharedData.beta1*sin_angle + sharedData.alfa2*(cos_angle*cos_angle - sin_angle*sin_angle) + sharedData.beta2*2*cos_angle*sin_angle;
 }
 
 Eigen::Vector3d Oseen::getR(int x, int y, Eigen::MatrixXd& angles) {

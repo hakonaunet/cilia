@@ -61,6 +61,17 @@ void UI::render() {
         ImGui::SliderFloat("Force", &oseenData->force, 0.0f, 10.0f);
         ImGui::SliderFloat("Force Amplitude", &oseenData->force_amplitude, 0.0f, oseenData->force);
 
+        float itemWidth = ImGui::GetWindowWidth() / 8 - ImGui::GetStyle().ItemSpacing.x;
+        ImGui::PushItemWidth(itemWidth);
+        ImGui::InputFloat("Alfa1", &oseenData->alfa1, 0.0f, 0.0f, "%.4f");
+        ImGui::SameLine();
+        ImGui::InputFloat("Beta1", &oseenData->beta1, 0.0f, 0.0f, "%.4f");
+        ImGui::SameLine();
+        ImGui::InputFloat("Alfa2", &oseenData->alfa2, 0.0f, 0.0f, "%.4f");
+        ImGui::SameLine();
+        ImGui::InputFloat("Beta2", &oseenData->beta2, 0.0f, 0.0f, "%.4f");
+        ImGui::PopItemWidth();
+
         // ImGui drop down menu with options from the enum class 'NoiseMode'
         std::string noiseModeOptionsStr[] = { "None", "Square", "Circular" };
         const char* noiseModeOptions[sizeof(noiseModeOptionsStr) / sizeof(std::string)];
@@ -85,37 +96,6 @@ void UI::render() {
         // If noiseMode is not None, display a slider to manipulate noiseWidth
         if (oseenData->noiseMode != NoiseMode::None) {
             ImGui::SliderFloat("noiseWidth", &oseenData->noiseWidth, 0.0f, oseenData->noiseWidthMax);
-        }
-
-        // ImGui drop down menu with options from the enum class 'FrequencyDistribution'
-        std::string frequencyDistributionOptionsStr[] = { "None", "Uniform", "Gaussian" };
-        const char* frequencyDistributionOptions[sizeof(frequencyDistributionOptionsStr) / sizeof(std::string)];
-        for (size_t i = 0; i < sizeof(frequencyDistributionOptionsStr) / sizeof(std::string); ++i) {
-            frequencyDistributionOptions[i] = frequencyDistributionOptionsStr[i].c_str();
-        }
-
-        // ImGui dropdown menu to select frequency distribution option
-        if (ImGui::BeginCombo("Frequency Distribution", frequencyDistributionOptions[static_cast<int>(oseenData->frequencyDistribution)])) {
-            for (size_t i = 0; i < sizeof(frequencyDistributionOptions) / sizeof(const char*); ++i) {
-                bool isSelected = (oseenData->frequencyDistribution == static_cast<FrequencyDistribution>(i));
-                if (ImGui::Selectable(frequencyDistributionOptions[i], isSelected)) {
-                    oseenData->frequencyDistribution = static_cast<FrequencyDistribution>(i);
-                }
-                if (isSelected) {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        // If frequencyDistribution is Uniform, display a slider to manipulate epsilon
-        if (oseenData->frequencyDistribution == FrequencyDistribution::Uniform) {
-            ImGui::SliderFloat("Epsilon", &oseenData->frequencyWidth, 0.0f, oseenData->frequencyWidthMax);
-        }
-
-        // If frequencyDistribution is Gaussian, display a slider to manipulate frequencyDeviation
-        if (oseenData->frequencyDistribution == FrequencyDistribution::Gaussian) {
-            ImGui::SliderFloat("Frequency Deviation", &oseenData->frequencyDeviation, 0.0f, oseenData->frequencyDeviationMax);
         }
 
         // ImGui drop down menu with options from the enum class 'AngleDistribution'
