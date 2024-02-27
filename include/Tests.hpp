@@ -14,4 +14,4 @@
 namespace py = pybind11;
 
 void test1();
-void plotTest1(std::vector<Eigen::Vector3d> test_points, std::vector<Eigen::Vector3d> velocities);
+void plotTest1(std::vector<Eigen::Vector3f> test_points, std::vector<Eigen::Vector3f> velocities);

@@ -32,7 +32,7 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data), positions_(data.width * 
 
     // Initialize the order parameter calculation if flag is set
     if (findOrderParameter_) {
-        std::complex<double> orderParameter = calculateOrderParameter(); // Added template argument 'double'
+        std::complex<float> orderParameter = calculateOrderParameter(); // Added template argument 'float'
         simulationTimes_.push_back(data.simulationTime); // Changed 'SharedDataKuramoto' to 'data'
         orderParameters_.push_back(orderParameter);
     }
@@ -47,43 +47,43 @@ Oseen::~Oseen() {
     //freeCUDA();
 }
 
-Eigen::Vector3d Oseen::initializePosition(int x, int y) {
+Eigen::Vector3f Oseen::initializePosition(int x, int y) {
     // Calculate the grid point
-    double gridX = x * params.grid_spacing;
-    double gridY = y * params.grid_spacing;
+    float gridX = x * params.grid_spacing;
+    float gridY = y * params.grid_spacing;
 
     switch (sharedData.noiseMode) {
         case NoiseMode::None: {
             // Return the grid position without any noise
-            return Eigen::Vector3d(gridX, gridY, params.z);
+            return Eigen::Vector3f(gridX, gridY, params.z);
         }
         case NoiseMode::Square: {
             // Generate a random position within a square centered at the grid point
-            double noiseX = (std::rand() / (double)RAND_MAX - 0.5) * sharedData.noiseWidth * 2;
-            double noiseY = (std::rand() / (double)RAND_MAX - 0.5) * sharedData.noiseWidth * 2;
-            return Eigen::Vector3d(gridX + noiseX, gridY + noiseY, params.z);
+            float noiseX = (std::rand() / (float)RAND_MAX - 0.5) * sharedData.noiseWidth * 2;
+            float noiseY = (std::rand() / (float)RAND_MAX - 0.5) * sharedData.noiseWidth * 2;
+            return Eigen::Vector3f(gridX + noiseX, gridY + noiseY, params.z);
         }
         case NoiseMode::Circular: {
             // Generate a random angle and a random radius
-            double angle = (std::rand() / (double)RAND_MAX) * 2 * M_PI;
-            double radius = std::sqrt(std::rand() / (double)RAND_MAX) * sharedData.noiseWidth;
+            float angle = (std::rand() / (float)RAND_MAX) * 2 * M_PI;
+            float radius = std::sqrt(std::rand() / (float)RAND_MAX) * sharedData.noiseWidth;
 
             // Convert polar coordinates to Cartesian coordinates
-            double noiseX = radius * std::cos(angle);
-            double noiseY = radius * std::sin(angle);
+            float noiseX = radius * std::cos(angle);
+            float noiseY = radius * std::sin(angle);
 
             // Return the final position
-            return Eigen::Vector3d(gridX + noiseX, gridY + noiseY, params.z);
+            return Eigen::Vector3f(gridX + noiseX, gridY + noiseY, params.z);
         }
         default: {
             // Handle other cases if necessary
-            return Eigen::Vector3d(gridX, gridY, params.z);
+            return Eigen::Vector3f(gridX, gridY, params.z);
         }
     }
 }
 
-double Oseen::initializeAngle() {
-    double defaultAngle = M_PI; // Default angle is pi
+float Oseen::initializeAngle() {
+    float defaultAngle = M_PI; // Default angle is pi
     switch (sharedData.angleDistribution) {
         case AngleDistribution::None: {
             // Return the default angle
@@ -91,10 +91,10 @@ double Oseen::initializeAngle() {
         }
         case AngleDistribution::Uniform: {
             // Generate a random angle in the range [defaultAngle - anglewidth_, defaultAngle + anglewidth_]
-            double lowerBound = defaultAngle - sharedData.angleWidth;
-            double upperBound = defaultAngle + sharedData.angleWidth;
-            double randomValue = (std::rand() / (double)RAND_MAX);
-            double angle = lowerBound + randomValue * (upperBound - lowerBound);
+            float lowerBound = defaultAngle - sharedData.angleWidth;
+            float upperBound = defaultAngle + sharedData.angleWidth;
+            float randomValue = (std::rand() / (float)RAND_MAX);
+            float angle = lowerBound + randomValue * (upperBound - lowerBound);
 
             // Ensure the angle is within [0, 2pi)
             angle = fmod(angle, 2 * M_PI);
@@ -106,8 +106,8 @@ double Oseen::initializeAngle() {
         case AngleDistribution::Gaussian: {
             // Generate a random angle using a Gaussian distribution
             std::default_random_engine generator;
-            std::normal_distribution<double> distribution(defaultAngle, sharedData.angleDeviation);
-            double angle = distribution(generator);
+            std::normal_distribution<float> distribution(defaultAngle, sharedData.angleDeviation);
+            float angle = distribution(generator);
             // Ensure the angle is within [0, 2pi)
             angle = fmod(angle, 2 * M_PI);
             if (angle < 0) {
@@ -132,18 +132,18 @@ void Oseen::checkCudaError(cudaError_t err, const char* operation) {
 
 void Oseen::initializeCUDA() {
     // Allocate memory on the GPU
-    checkCudaError(cudaMalloc(&d_angles, params.N * sizeof(double)), "cudaMalloc d_angles");
-    checkCudaError(cudaMalloc(&d_pos_x, params.N * sizeof(double)), "cudaMalloc d_pos_x");
-    checkCudaError(cudaMalloc(&d_pos_y, params.N * sizeof(double)), "cudaMalloc d_pos_y");
-    checkCudaError(cudaMalloc(&d_velocities_x, params.N * sizeof(double)), "cudaMalloc d_velocities_x");
-    checkCudaError(cudaMalloc(&d_velocities_y, params.N * sizeof(double)), "cudaMalloc d_velocities_y");
+    checkCudaError(cudaMalloc(&d_angles, params.N * sizeof(float)), "cudaMalloc d_angles");
+    checkCudaError(cudaMalloc(&d_pos_x, params.N * sizeof(float)), "cudaMalloc d_pos_x");
+    checkCudaError(cudaMalloc(&d_pos_y, params.N * sizeof(float)), "cudaMalloc d_pos_y");
+    checkCudaError(cudaMalloc(&d_velocities_x, params.N * sizeof(float)), "cudaMalloc d_velocities_x");
+    checkCudaError(cudaMalloc(&d_velocities_y, params.N * sizeof(float)), "cudaMalloc d_velocities_y");
     std::cout << "Allocating d_params" << std::endl;
     checkCudaError(cudaMalloc(&d_params, sizeof(OseenParameters)), "cudaMalloc d_params");
 
 
     // Create temporary vectors to hold the positions
-    std::vector<double> pos_x(params.N);
-    std::vector<double> pos_y(params.N);
+    std::vector<float> pos_x(params.N);
+    std::vector<float> pos_y(params.N);
 
     // Copy data from positions_ to the temporary vectors
     for (unsigned int i = 0; i < params.N; ++i) {
@@ -152,16 +152,16 @@ void Oseen::initializeCUDA() {
     }
 
     // Copy initial data to the GPU
-    checkCudaError(cudaMemcpy(d_angles, angles_.data(), params.N * sizeof(double), cudaMemcpyHostToDevice), "cudaMemcpy d_angles");
-    checkCudaError(cudaMemcpy(d_pos_x, pos_x.data(), params.N * sizeof(double), cudaMemcpyHostToDevice), "cudaMemcpy d_pos_x");
-    checkCudaError(cudaMemcpy(d_pos_y, pos_y.data(), params.N * sizeof(double), cudaMemcpyHostToDevice), "cudaMemcpy d_pos_y");
-    checkCudaError(cudaMemcpy(d_velocities_x, velocities_.data(), params.N * sizeof(double), cudaMemcpyHostToDevice), "cudaMemcpy d_velocities_x");
-    checkCudaError(cudaMemcpy(d_velocities_y, velocities_.data(), params.N * sizeof(double), cudaMemcpyHostToDevice), "cudaMemcpy d_velocities_y");
+    checkCudaError(cudaMemcpy(d_angles, angles_.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_angles");
+    checkCudaError(cudaMemcpy(d_pos_x, pos_x.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_pos_x");
+    checkCudaError(cudaMemcpy(d_pos_y, pos_y.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_pos_y");
+    checkCudaError(cudaMemcpy(d_velocities_x, velocities_.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_velocities_x");
+    checkCudaError(cudaMemcpy(d_velocities_y, velocities_.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_velocities_y");
     std::cout << "Copying d_params to device" << std::endl;
     checkCudaError(cudaMemcpy(d_params, &params, sizeof(OseenParameters), cudaMemcpyHostToDevice), "cudaMemcpy d_params");
 }
 
-void Oseen::updateCUDA() {
+void Oseen::updateCUDA(Eigen::MatrixXf& angles) {
     // Update the parameters from sharedData
     params.deltaTime = sharedData.deltaTime;
     params.force = sharedData.force;
@@ -173,6 +173,8 @@ void Oseen::updateCUDA() {
 
     // Copy the updated parameters to the device
     checkCudaError(cudaMemcpy(d_params, &params, sizeof(OseenParameters), cudaMemcpyHostToDevice), "cudaMemcpy d_params");
+    // Copy angles to the GPU
+    checkCudaError(cudaMemcpy(d_angles, angles.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy angles");
 }
 
 void Oseen::freeCUDA() {
@@ -185,9 +187,10 @@ void Oseen::freeCUDA() {
     checkCudaError(cudaFree(d_params), "cudaFree d_params");
 }
 
-void Oseen::CUDAupdateVelocities(Eigen::MatrixXd& angles) {
-    // Copy angles to the GPU
-    checkCudaError(cudaMemcpy(d_angles, angles.data(), params.N * sizeof(double), cudaMemcpyHostToDevice), "cudaMemcpy angles");
+void Oseen::CUDAupdateVelocities(Eigen::MatrixXf& angles) {
+
+    // Update the parameters from sharedData
+    updateCUDA(angles);
 
     // Launch the kernel
     launchCalculateVelocityKernel(d_pos_x, d_pos_y, d_angles, d_velocities_x, d_velocities_y, d_params, params.N);
@@ -199,12 +202,12 @@ void Oseen::CUDAupdateVelocities(Eigen::MatrixXd& angles) {
     checkCudaError(cudaDeviceSynchronize(), "Synchronizing after kernel launch");
 
     // Create temporary arrays to hold the velocities
-    std::vector<double> velocities_x(params.N);
-    std::vector<double> velocities_y(params.N);
+    std::vector<float> velocities_x(params.N);
+    std::vector<float> velocities_y(params.N);
 
     // Copy velocities back to the CPU
-    checkCudaError(cudaMemcpy(velocities_x.data(), d_velocities_x, params.N * sizeof(double), cudaMemcpyDeviceToHost), "cudaMemcpy d_velocities_x");
-    checkCudaError(cudaMemcpy(velocities_y.data(), d_velocities_y, params.N * sizeof(double), cudaMemcpyDeviceToHost), "cudaMemcpy d_velocities_y");
+    checkCudaError(cudaMemcpy(velocities_x.data(), d_velocities_x, params.N * sizeof(float), cudaMemcpyDeviceToHost), "cudaMemcpy d_velocities_x");
+    checkCudaError(cudaMemcpy(velocities_y.data(), d_velocities_y, params.N * sizeof(float), cudaMemcpyDeviceToHost), "cudaMemcpy d_velocities_y");
 
     // Update the 'velocities_' member variable
     for (size_t i = 0; i < params.N; ++i) {
@@ -229,7 +232,7 @@ void Oseen::CUDArungeKutta4() {
     normalizeAngles(angles_);
 }
 
-void Oseen::CUDAcalculateStep(Eigen::MatrixXd& angles, Eigen::MatrixXd& result, double dt) {
+void Oseen::CUDAcalculateStep(Eigen::MatrixXf& angles, Eigen::MatrixXf& result, float dt) {
     CUDAupdateVelocities(angles);
     // Iterate across every cilium
     #pragma omp parallel for collapse(2) // Parallelize both x and y loops
@@ -249,10 +252,10 @@ void Oseen::iteration() {
 
     auto endTime = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
-    sharedData.updateTime = static_cast<double>(duration.count());
+    sharedData.updateTime = static_cast<float>(duration.count());
 }
 
-void Oseen::updateVelocities(Eigen::MatrixXd& angles) {
+void Oseen::updateVelocities(Eigen::MatrixXf& angles) {
     velocities_.setZero();
     #pragma omp parallel for collapse(2) // Parallelize both x and y loops
     for (size_t x = 0; x < params.width; ++x) {
@@ -263,8 +266,8 @@ void Oseen::updateVelocities(Eigen::MatrixXd& angles) {
 }
 
 // Get velocity of cilia at position (x, y)
-void Oseen::calculateVelocity(size_t x, size_t y, Eigen::MatrixXd& angles) {
-    Eigen::Vector3d r_i = getR(x, y, angles);
+void Oseen::calculateVelocity(size_t x, size_t y, Eigen::MatrixXf& angles) {
+    Eigen::Vector3f r_i = getR(x, y, angles);
     for (size_t i = 0; i < params.width; ++i) {
         for (size_t j = 0; j < params.height; ++j) {
             if (i == x && j == y) continue;
@@ -278,11 +281,11 @@ void Oseen::updateAngles() {
     #pragma omp parallel for collapse(2) // Parallelize both x and y loops
     for (size_t x = 0; x < params.width; ++x) {
         for (size_t y = 0; y < params.height; ++y) {
-            double f_i = getForceMagnitude(x, y, angles_);
-            Eigen::Vector3d t_i = Eigen::Vector3d(-sin(angles_(x, y)), cos(angles_(x, y)), 0);
-            double omega_i = f_i / (params.drag_coefficient * params.cilia_radius);
-            Eigen::Vector3d velocity_at_xy = velocities_.row(x * params.height + y); // Assuming linear indexing
-            double dot_product = t_i.dot(velocity_at_xy);
+            float f_i = getForceMagnitude(x, y, angles_);
+            Eigen::Vector3f t_i = Eigen::Vector3f(-sin(angles_(x, y)), cos(angles_(x, y)), 0);
+            float omega_i = f_i / (params.drag_coefficient * params.cilia_radius);
+            Eigen::Vector3f velocity_at_xy = velocities_.row(x * params.height + y); // Assuming linear indexing
+            float dot_product = t_i.dot(velocity_at_xy);
 
             // Euler's method
             angles_(x, y) += sharedData.deltaTime * (omega_i + dot_product / params.cilia_radius);
@@ -294,10 +297,10 @@ void Oseen::updateAngles() {
     }
 }
 
-void Oseen::normalizeAngles(Eigen::MatrixXd& angles) {
-    angles.array() = angles.array().unaryExpr([](double val) { 
-        val = std::fmod(val, 2 * M_PI);
-        return val < 0 ? val + 2 * M_PI : val; 
+void Oseen::normalizeAngles(Eigen::MatrixXf& angles) {
+    angles.array() = angles.array().unaryExpr([](float val) { 
+        val = std::fmod(val, 2 * static_cast<float>(M_PI));
+        return val < 0 ? val + 2 * static_cast<float>(M_PI) : val; 
     });
 }
 
@@ -316,7 +319,7 @@ void Oseen::rungeKutta4() {
     normalizeAngles(angles_);
 }
 
-void Oseen::calculateStep(Eigen::MatrixXd& angles, Eigen::MatrixXd& result, double dt) {
+void Oseen::calculateStep(Eigen::MatrixXf& angles, Eigen::MatrixXf& result, float dt) {
     updateVelocities(angles);
     // Iterate across every cilium
     #pragma omp parallel for collapse(2) // Parallelize both x and y loops
@@ -327,54 +330,54 @@ void Oseen::calculateStep(Eigen::MatrixXd& angles, Eigen::MatrixXd& result, doub
     }
 }
 
-double Oseen::f(double x, double y, Eigen::MatrixXd& angles) {
-    double f_i = getForceMagnitude(x, y, angles);                       // Get the force magnitude fpr cilium at (x, y)
-    double omega_i = f_i / (params.drag_coefficient * params.cilia_radius);         // 
-    Eigen::Vector3d t_i = getTangent(x, y, angles);
-    Eigen::Vector3d velocity_at_xy = velocities_.row(x * params.height + y);
-    double dot_product = t_i.dot(velocity_at_xy);
+float Oseen::f(float x, float y, Eigen::MatrixXf& angles) {
+    float f_i = getForceMagnitude(x, y, angles);                       // Get the force magnitude fpr cilium at (x, y)
+    float omega_i = f_i / (params.drag_coefficient * params.cilia_radius);         // 
+    Eigen::Vector3f t_i = getTangent(x, y, angles);
+    Eigen::Vector3f velocity_at_xy = velocities_.row(x * params.height + y);
+    float dot_product = t_i.dot(velocity_at_xy);
     return omega_i + dot_product / params.cilia_radius;
 }
 
-Eigen::Vector3d Oseen::stokeslet(Eigen::Vector3d point, int x, int y, Eigen::MatrixXd& angles){
-    Eigen::Vector3d f_2 = getForce(x, y, angles);
-    Eigen::Vector3d r = point - getR(x, y, angles);
-    double r_length = r.norm();
+Eigen::Vector3f Oseen::stokeslet(Eigen::Vector3f point, int x, int y, Eigen::MatrixXf& angles){
+    Eigen::Vector3f f_2 = getForce(x, y, angles);
+    Eigen::Vector3f r = point - getR(x, y, angles);
+    float r_length = r.norm();
     return (1/(8*M_PI*params.mu*r_length)) * (f_2 + (r.dot(f_2)/(r_length*r_length)) * r);
 }
 
-Eigen::Vector3d Oseen::stokeslet(int x_1, int y_1, int x_2, int y_2, Eigen::MatrixXd& angles) {
-    Eigen::Vector3d f_2 = getForce(x_2, y_2, angles);
-    Eigen::Vector3d r = getR(x_1, y_1, angles) - getR(x_2, y_2, angles);
-    double r_length = r.norm();
+Eigen::Vector3f Oseen::stokeslet(int x_1, int y_1, int x_2, int y_2, Eigen::MatrixXf& angles) {
+    Eigen::Vector3f f_2 = getForce(x_2, y_2, angles);
+    Eigen::Vector3f r = getR(x_1, y_1, angles) - getR(x_2, y_2, angles);
+    float r_length = r.norm();
     return (1/(8*M_PI*params.mu*r_length)) * (f_2 + (r.dot(f_2)/(r_length*r_length)) * r);
 }
 
-Eigen::Vector3d Oseen::getForce(int x, int y, Eigen::MatrixXd& angles) {
+Eigen::Vector3f Oseen::getForce(int x, int y, Eigen::MatrixXf& angles) {
     return getForceMagnitude(x, y, angles) * getTangent(x, y, angles);
 }
 
-double Oseen::getForceMagnitude(int x, int y, Eigen::MatrixXd& angles) {
-    double cos_angle = cos(angles(x,y));
-    double sin_angle = sin(angles(x,y));
+float Oseen::getForceMagnitude(int x, int y, Eigen::MatrixXf& angles) {
+    float cos_angle = cos(angles(x,y));
+    float sin_angle = sin(angles(x,y));
     return sharedData.force + sharedData.alfa1*cos_angle + sharedData.beta1*sin_angle + sharedData.alfa2*(cos_angle*cos_angle - sin_angle*sin_angle) + sharedData.beta2*2*cos_angle*sin_angle;
 }
 
-Eigen::Vector3d Oseen::getR(int x, int y, Eigen::MatrixXd& angles) {
-    Eigen::Vector3d pos_at_xy = positions_.row(x * params.height + y); // Assuming linear indexing for positions_
-    return pos_at_xy + params.cilia_radius * Eigen::Vector3d(cos(angles(x, y)), sin(angles(x, y)), 0);
+Eigen::Vector3f Oseen::getR(int x, int y, Eigen::MatrixXf& angles) {
+    Eigen::Vector3f pos_at_xy = positions_.row(x * params.height + y); // Assuming linear indexing for positions_
+    return pos_at_xy + params.cilia_radius * Eigen::Vector3f(cos(angles(x, y)), sin(angles(x, y)), 0);
 }
 
-Eigen::Vector3d Oseen::getTangent(int x, int y, Eigen::MatrixXd& angles) {
-    return Eigen::Vector3d(-sin(angles(x, y)), cos(angles(x, y)), 0);
+Eigen::Vector3f Oseen::getTangent(int x, int y, Eigen::MatrixXf& angles) {
+    return Eigen::Vector3f(-sin(angles(x, y)), cos(angles(x, y)), 0);
 }
 
-double Oseen::getVelocityMagnitudeAtPoint(Eigen::Vector3d point, Eigen::MatrixXd& angles) {
+float Oseen::getVelocityMagnitudeAtPoint(Eigen::Vector3f point, Eigen::MatrixXf& angles) {
     return getVelocityAtPoint(point, angles).norm();
 }
 
-Eigen::Vector3d Oseen::getVelocityAtPoint(Eigen::Vector3d point, Eigen::MatrixXd& angles) {
-    Eigen::Vector3d velocity = Eigen::Vector3d::Zero();
+Eigen::Vector3f Oseen::getVelocityAtPoint(Eigen::Vector3f point, Eigen::MatrixXf& angles) {
+    Eigen::Vector3f velocity = Eigen::Vector3f::Zero();
     for (size_t x = 0; x < params.width; ++x) {
         for (size_t y = 0; y < params.height; ++y) {
             velocity += stokeslet(point, x, y, angles);
@@ -383,21 +386,21 @@ Eigen::Vector3d Oseen::getVelocityAtPoint(Eigen::Vector3d point, Eigen::MatrixXd
     return velocity;
 }
 
-Eigen::Vector3d Oseen::getVelocityAtPoint(Eigen::Vector3d point) {
+Eigen::Vector3f Oseen::getVelocityAtPoint(Eigen::Vector3f point) {
     return getVelocityAtPoint(point, angles_);
 }
 
 // Function to calculate the Kuramoto order parameter
-std::complex<double> Oseen::calculateOrderParameter() {
-    double realPart = 0.0;
-    double imagPart = 0.0;
+std::complex<float> Oseen::calculateOrderParameter() {
+    float realPart = 0.0;
+    float imagPart = 0.0;
 
     #pragma omp parallel for collapse(2) // Parallelize both x and y loops
     for (size_t x = 0; x < params.width; x++) {
         for (size_t y = 0; y < params.height; y++) {
-            double theta = angles_(x,y);
-            double cos_theta = std::cos(theta);
-            double sin_theta = std::sin(theta);
+            float theta = angles_(x,y);
+            float cos_theta = std::cos(theta);
+            float sin_theta = std::sin(theta);
             #pragma omp atomic
             realPart += cos_theta;
             #pragma omp atomic
@@ -405,8 +408,8 @@ std::complex<double> Oseen::calculateOrderParameter() {
         }
     }
 
-    std::complex<double> orderParameter(realPart, imagPart);
-    return orderParameter / static_cast<double>(params.N);
+    std::complex<float> orderParameter(realPart, imagPart);
+    return orderParameter / static_cast<float>(params.N);
 }
 
 void Oseen::calcOmega() {

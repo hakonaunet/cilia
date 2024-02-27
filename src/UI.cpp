@@ -61,15 +61,15 @@ void UI::render() {
         ImGui::SliderFloat("Force", &oseenData->force, 0.0f, 10.0f);
         ImGui::SliderFloat("Force Amplitude", &oseenData->force_amplitude, 0.0f, oseenData->force);
 
-        float itemWidth = ImGui::GetWindowWidth() / 8 - ImGui::GetStyle().ItemSpacing.x;
+        float itemWidth = ImGui::GetWindowWidth() / 6 - ImGui::GetStyle().ItemSpacing.x;
         ImGui::PushItemWidth(itemWidth);
-        ImGui::InputFloat("Alfa1", &oseenData->alfa1, 0.0f, 0.0f, "%.4f");
+        ImGui::InputFloat("Alfa1", &oseenData->alfa1, 0.0f, 0.0f);
         ImGui::SameLine();
-        ImGui::InputFloat("Beta1", &oseenData->beta1, 0.0f, 0.0f, "%.4f");
+        ImGui::InputFloat("Beta1", &oseenData->beta1, 0.0f, 0.0f);
         ImGui::SameLine();
-        ImGui::InputFloat("Alfa2", &oseenData->alfa2, 0.0f, 0.0f, "%.4f");
+        ImGui::InputFloat("Alfa2", &oseenData->alfa2, 0.0f, 0.0f);
         ImGui::SameLine();
-        ImGui::InputFloat("Beta2", &oseenData->beta2, 0.0f, 0.0f, "%.4f");
+        ImGui::InputFloat("Beta2", &oseenData->beta2, 0.0f, 0.0f);
         ImGui::PopItemWidth();
 
         // ImGui drop down menu with options from the enum class 'NoiseMode'

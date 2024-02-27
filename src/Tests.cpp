@@ -7,19 +7,19 @@ void test1() {
     sharedData_.width = 3;
     sharedData_.height = 4;
     Oseen oseen_(sharedData_);
-    std::vector<double> dataPoints;
+    std::vector<float> dataPoints;
     for (int i = 0; i < 100; i++) {
         oseen_.iteration();
     }
     unsigned int test_points = 100;
-    double radius = 10.0; // Replace with your desired radius
-    double distance_between_points = 2.0 * radius / (test_points - 1);
+    float radius = 10.0; // Replace with your desired radius
+    float distance_between_points = 2.0 * radius / (test_points - 1);
 
-    std::vector<Eigen::Vector3d> data_points(test_points);
-    std::vector<Eigen::Vector3d> velocities(test_points);
+    std::vector<Eigen::Vector3f> data_points(test_points);
+    std::vector<Eigen::Vector3f> velocities(test_points);
     for (unsigned int i = 0; i < test_points; ++i) {
-        double z = -radius + i * distance_between_points;
-        data_points[i] = Eigen::Vector3d(-3, 0, z);
+        float z = -radius + i * distance_between_points;
+        data_points[i] = Eigen::Vector3f(-3, 0, z);
     }
     for (unsigned int i = 0; i < test_points; ++i) {
         velocities[i] = oseen_.getVelocityAtPoint(data_points[i]);
@@ -27,7 +27,7 @@ void test1() {
     plotTest1(data_points, velocities);
 }
 
-void plotTest1(std::vector<Eigen::Vector3d> test_points, std::vector<Eigen::Vector3d> velocities) {
+void plotTest1(std::vector<Eigen::Vector3f> test_points, std::vector<Eigen::Vector3f> velocities) {
 
     // Convert the data to Python lists
     py::list zCoordinates, xVelocities, yVelocities, zVelocities;
