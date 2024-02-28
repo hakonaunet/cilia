@@ -17,7 +17,7 @@ struct SharedDataOseen : public SharedData {
 
     SharedDataOseen() : SharedData(), width(100), height(1), gridSpacing(1), frequencyWidth(0.1), noiseWidth(0), frequencyDeviation(0.1), 
                     angleDeviation(0.1), angleWidth(M_PI), cilia_radius(0.2), force(1.5), force_amplitude(1), 
-                    alfa1(0.5), beta1(0.5), alfa2(0), beta2(0),
+                    alfa1(0.5), beta1(0.5), alfa2(0.5), beta2(0.5),
                     noiseWidthMax(2), frequencyWidthMax(1), frequencyDeviationMax(1), angleWidthMax(M_PI), angleDeviationMax(1), 
                     noiseMode(NoiseMode::None), frequencyDistribution(FrequencyDistribution::None), angleDistribution(AngleDistribution::None) {
         deltaTime = 0.005;

@@ -12,7 +12,7 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data), positions_(data.width * 
     params.width = data.width;
     params.height = data.height;
     params.N = params.width * params.height;
-    params.z = 0;
+    params.z = 1;
     params.force = data.force;
     params.mu = 1;
     params.cilia_radius = data.cilia_radius;

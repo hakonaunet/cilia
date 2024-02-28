@@ -27,6 +27,39 @@ void test1() {
     plotTest1(data_points, velocities);
 }
 
+void test2() {
+    SharedDataOseen sharedData_;
+    sharedData_.width = 100;
+    sharedData_.height = 100;
+    Oseen oseen_(sharedData_);
+    std::vector<float> dataPoints;
+    for (int i = 0; i < 20; i++) {
+        oseen_.iteration();
+    }
+    unsigned int test_points = 100;
+    float radius = 10.0; // Replace with your desired radius
+    float distance_between_points = 2.0 * radius / (test_points - 1);
+
+    std::vector<Eigen::Vector3f> data_points(test_points);
+    std::vector<Eigen::Vector3f> velocities(test_points);
+    bool failure = false;
+    for (unsigned int i = 0; i < test_points; ++i) {
+        float x = -radius + i * distance_between_points;
+        float y = -radius + i * distance_between_points;
+        data_points[i] = Eigen::Vector3f(x, y, 0);
+    }
+    for (unsigned int i = 0; i < test_points; ++i) {
+        velocities[i] = oseen_.getVelocityAtPoint(data_points[i]);
+        if (abs(velocities[i].z()) >= 1e-4) {  // Check that the z-component of the velocity is close to 0
+            failure = true;
+        }
+    }
+    if (failure) {
+        std::cout << "Test failed: z-component of the velocity is not close to 0 at some points." << std::endl;
+    }
+    plotTest1(data_points, velocities);
+}
+
 void plotTest1(std::vector<Eigen::Vector3f> test_points, std::vector<Eigen::Vector3f> velocities) {
 
     // Convert the data to Python lists

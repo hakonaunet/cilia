@@ -9,6 +9,7 @@ def plot_test_1(x, y, z, measurement_points, filename):
     plt.plot(measurement_points, z, label='z-component')
     plt.xlabel("Measurement points along the z-axis")  # Set x-axis title
     plt.ylabel("Velocity field")  # Set y-axis title
+    plt.yscale('log')  # Set y-axis to logarithmic scale
     plt.title("Test 1: symmetric velocity field around cilia plane")  # Set plot title
     plt.legend()  # Add a legend
     plt.grid(True)  # Add grid

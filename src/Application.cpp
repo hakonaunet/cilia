@@ -35,6 +35,10 @@ void Application::init() {
         // Test1
         test1();
     }
+    else if (mode == SimulationMode::Test2) {
+        // Test2
+        test2();
+    }
 }
 
 void Application::run() {
@@ -162,6 +166,11 @@ void Application::promptForSimulationMode() {
         if (ImGui::Button("Test1")) {
             ImGui::SetTooltip("Verify symmetry around the cilia plane");
             mode = SimulationMode::Test1;
+            modeWindow.close();
+        }
+        if (ImGui::Button("Test2")) {
+            ImGui::SetTooltip("Verify zero velocity in the z=0 plane");
+            mode = SimulationMode::Test2;
             modeWindow.close();
         }
         ImGui::End();

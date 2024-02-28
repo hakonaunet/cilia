@@ -23,7 +23,8 @@
 enum class SimulationMode {
     Kuramoto,
     Oseen,
-    Test1
+    Test1,
+    Test2
 };
 
 class Application {
