@@ -27,39 +27,6 @@ void test1() {
     plotTest1(data_points, velocities);
 }
 
-void test2() {
-    SharedDataOseen sharedData_;
-    sharedData_.width = 100;
-    sharedData_.height = 100;
-    Oseen oseen_(sharedData_);
-    std::vector<float> dataPoints;
-    for (int i = 0; i < 20; i++) {
-        oseen_.iteration();
-    }
-    unsigned int test_points = 100;
-    float radius = 10.0; // Replace with your desired radius
-    float distance_between_points = 2.0 * radius / (test_points - 1);
-
-    std::vector<Eigen::Vector3f> data_points(test_points);
-    std::vector<Eigen::Vector3f> velocities(test_points);
-    bool failure = false;
-    for (unsigned int i = 0; i < test_points; ++i) {
-        float x = -radius + i * distance_between_points;
-        float y = -radius + i * distance_between_points;
-        data_points[i] = Eigen::Vector3f(x, y, 0);
-    }
-    for (unsigned int i = 0; i < test_points; ++i) {
-        velocities[i] = oseen_.getVelocityAtPoint(data_points[i]);
-        if (abs(velocities[i].z()) >= 1e-4) {  // Check that the z-component of the velocity is close to 0
-            failure = true;
-        }
-    }
-    if (failure) {
-        std::cout << "Test failed: z-component of the velocity is not close to 0 at some points." << std::endl;
-    }
-    plotTest1(data_points, velocities);
-}
-
 void plotTest1(std::vector<Eigen::Vector3f> test_points, std::vector<Eigen::Vector3f> velocities) {
 
     // Convert the data to Python lists
@@ -92,6 +59,77 @@ void plotTest1(std::vector<Eigen::Vector3f> test_points, std::vector<Eigen::Vect
     py::object plot_test_1 = py::globals()["plot_test_1"];
     plot_test_1(xVelocities, yVelocities, zVelocities, zCoordinates, "Test1.png");
 
+}
+
+#include <random>  // Include the <random> library
+
+void test2() {
+    SharedDataOseen sharedData_;
+    sharedData_.width = 100;
+    sharedData_.height = 100;
+    Oseen oseen_(sharedData_);
+    std::vector<float> dataPoints;
+    for (int i = 0; i < 20; i++) {
+        oseen_.iteration();
+    }
+    unsigned int test_points = 100;
+
+    // Define the range for x and y coordinates
+    float min_coord = -10.0;
+    float max_coord = 10.0;
+
+    // Create a random number generator
+    std::default_random_engine generator;
+    std::uniform_real_distribution<float> distribution(min_coord, max_coord);
+
+    std::vector<Eigen::Vector3f> data_points(test_points);
+    std::vector<Eigen::Vector3f> velocities(test_points);
+    bool failure = false;
+    for (unsigned int i = 0; i < test_points; ++i) {
+        float x = distribution(generator);
+        float y = distribution(generator);
+        data_points[i] = Eigen::Vector3f(x, y, 0);
+    }
+    for (unsigned int i = 0; i < test_points; ++i) {
+        velocities[i] = oseen_.getVelocityAtPoint(data_points[i]);
+        if (abs(velocities[i].z()) >= 1e-4) {  // Check that the z-component of the velocity is close to 0
+            failure = true;
+        }
+    }
+    if (failure) {
+        std::cout << "Test failed: z-component of the velocity is not close to 0 at some points." << std::endl;
+    }
+    plotTest2(velocities);
+}
+
+void plotTest2(std::vector<Eigen::Vector3f> velocities) {
+
+    // Convert the data to Python lists
+    py::list xVelocities, yVelocities;
+    
+    for (size_t i = 0; i < velocities.size(); ++i) {
+        xVelocities.append(velocities[i].x());
+        yVelocities.append(velocities[i].y());
+    }
+    // Get the path to the current source file
+    std::string currentFile = __FILE__;
+
+    // Remove the filename to get the directory
+    std::string currentDir = currentFile.substr(0, currentFile.rfind('/'));
+
+    // Construct the path to the Python script
+    std::string scriptPath = currentDir + "/../pyplot/Plots.py";
+
+    // Read the Python script
+    std::ifstream file(scriptPath);
+    std::string script((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    // Execute the Python script
+    py::exec(script);
+
+    // Call the plot_data function
+    py::object plot_test_2 = py::globals()["plot_test_2"];
+    plot_test_2(xVelocities, yVelocities, "Test2.png");
 }
 
 #ifdef RUN_TESTS

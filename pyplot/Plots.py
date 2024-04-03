@@ -21,6 +21,22 @@ def plot_test_1(x, y, z, measurement_points, filename):
     plt.savefig(os.path.join(output_dir, filename))  # Save the figure to the output directory
     plt.close()  # Close the figure to free up memory
 
+def plot_test_2(velocity_x, velocity_y, filename):
+    plt.figure()  # Create a new figure
+    plt.plot(velocity_x, label = 'x-component')
+    plt.plot(velocity_y, label = 'y-component')
+    plt.yscale('log')
+    plt.title("Test 2: velocities in z=0 plane")  # Set plot title
+    plt.legend()  # Add a legend
+    plt.grid(True)  # Add grid
+
+    output_dir = "output_files"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)  # Create directory if it doesn't exist
+
+    plt.savefig(os.path.join(output_dir, filename))  # Save the figure to the output directory
+    plt.close()  # Close the figure to free up memory
+
 def plot_data(x, y, filename):
     plt.figure()  # Create a new figure
     plt.plot(x, y)
