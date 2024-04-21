@@ -2,7 +2,7 @@
 #include "Utils.hpp"
 
 sf::Color angleToColor(double angle) {
-    double hue = angle / (2 * M_PI); // Normalize to [0, 1]
+    double hue = (angle + M_PI) / (2 * M_PI); // Normalize to [0, 1]
 
     int i = int(hue * 6);
     double f = hue * 6 - i;

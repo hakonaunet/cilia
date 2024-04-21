@@ -5,7 +5,9 @@
 void UI::render() {
     ImGui::Begin("Simulation Controls");
 
-    ImGui::SliderFloat("Time step", &sharedData->deltaTime, 0.001f, 1.0f);
+    ImGui::SliderFloat("Time step", &sharedData->deltaTime, 0.0001f, 1.0f);
+    ImGui::SameLine();
+    ImGui::InputFloat("##TimeStepInput", &sharedData->deltaTime, 0.0001f, 1.0f, "%.4f");
     if (ImGui::IsItemHovered()) {
         ImGui::SetTooltip("Time step for simulation");
     }
@@ -50,9 +52,13 @@ void UI::render() {
         static bool independentHeight = false;
         ImGui::SliderInt("Width", &oseenData->width, 1, 400);
         ImGui::SameLine();
+        ImGui::InputInt("##WidthInput", &oseenData->width);
+        ImGui::SameLine();
         ImGui::Checkbox("Height", &independentHeight);
         if (independentHeight) {
             ImGui::SliderInt("Height", &oseenData->height, 1, 400);
+            ImGui::SameLine();
+            ImGui::InputInt("##HeightInput", &oseenData->height);
         } else {
             oseenData->height = oseenData->width;
         }
@@ -128,6 +134,7 @@ void UI::render() {
         if (oseenData->angleDistribution == AngleDistribution::Gaussian) {
             ImGui::SliderFloat("Angle Deviation", &oseenData->angleDeviation, 0.0f, oseenData->angleDeviationMax);
         }
+        ImGui::Checkbox("Use Blake", &oseenData->useBlake);
     }
 
 

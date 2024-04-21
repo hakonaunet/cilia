@@ -7,13 +7,13 @@ CXXFLAGS = -O3 -march=native -std=c++20 -Wall -fopenmp -flto \
             -I/usr/local/include -I./imgui -I./imgui-sfml -I./implot \
             -Iinclude -I/home/haakolau/.local/lib/python3.11/site-packages/pybind11/include \
             -I/usr/include/eigen3 \
-			#-g
+			-g
 
 NVCCFLAGS = -I/usr/local/cuda/include -I/usr/include/python3.11 \
             -I/usr/local/include -I./imgui -I./imgui-sfml \
             -Iinclude -I/home/haakolau/.local/lib/python3.11/site-packages/pybind11/include \
 	    	-I/usr/include/eigen3 \
-			#-g
+			-g -G
 
 CUDA_LIB_PATH = /usr/local/cuda/lib64
 LFLAGS = -fopenmp -flto $(LIBS) -L$(CUDA_LIB_PATH) -lcudart

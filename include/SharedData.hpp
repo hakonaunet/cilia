@@ -17,7 +17,7 @@ struct SharedData {
     bool shouldPlotOrderParameter;
     bool gpuParallelization;
 
-    SharedData() : deltaTime(0.1), updateTime(0), isSimulationRunning(false), 
+    SharedData() : deltaTime(0.01), updateTime(0), isSimulationRunning(false), 
                     isPaused(false), startSimulation(false),
                     trackKuramotoOrderParameter(false), shouldPlotOrderParameter(false), 
                     gpuParallelization(false) {

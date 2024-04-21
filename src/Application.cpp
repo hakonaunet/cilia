@@ -48,6 +48,10 @@ void Application::run() {
     sf::RenderWindow window(sf::VideoMode(windowsize.x, windowsize.y), "Simulation");
     window.setPosition(sf::Vector2i(3000, 0));
 
+    // Second window setup
+    sf::RenderWindow infoWindow(sf::VideoMode(windowsize.x, windowsize.y), "Velocity Field");
+    infoWindow.setPosition(sf::Vector2i(1700, 0));
+
     // ImGui initialization
     if (!ImGui::SFML::Init(window)) {
         std::cerr << "Failed to initialize ImGui with SFML." << std::endl;
@@ -71,6 +75,12 @@ void Application::run() {
         while (window.pollEvent(event)) {
             ImGui::SFML::ProcessEvent(window, event);
             if (event.type == sf::Event::Closed) window.close();
+        }
+
+        // Event handling for info window
+        sf::Event infoEvent;
+        while (infoWindow.pollEvent(infoEvent)) {
+            if (infoEvent.type == sf::Event::Closed) infoWindow.close();
         }
 
         // Simulation start handling
@@ -105,6 +115,7 @@ void Application::run() {
 
         // Window clearing
         window.clear();
+        infoWindow.clear();
 
         // Rendering
         if (sharedData->isSimulationRunning && (grid != nullptr || oseen != nullptr)) {

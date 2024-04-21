@@ -10,7 +10,8 @@
                 "${workspaceFolder}/include",
                 "${workspaceFolder}/cuda_src",
                 "${workspaceFolder}/include",
-                "/usr/local/cuda/include"
+                "/usr/local/cuda/include",
+                "${workspaceFolder}/include"
             ],
             "defines": [],
             "cStandard": "c17",

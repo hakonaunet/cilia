@@ -14,7 +14,7 @@
 #include <cuda_runtime.h>
 
 #include "SharedDataOseen.hpp"
-#include "Oseen.cuh"
+#include "Blake.cuh"
 #include "OseenParameters.hpp"
 
 class Oseen {
@@ -47,6 +47,11 @@ private:
     
     Eigen::MatrixX3f positions_;
     Eigen::MatrixX3f velocities_;
+    Eigen::MatrixX3f velocityPoints_;
+    Eigen::MatrixX3f velocityMeasurement_;
+    Eigen::MatrixXf velocityMeasurementMagnitude_;
+    Eigen::Vector3f minPosition_;
+    Eigen::Vector3f maxPosition_;
     Eigen::MatrixXf angles_, tempAngles_;
     Eigen::MatrixXf k1_, k2_, k3_, k4_;
     
@@ -55,6 +60,7 @@ private:
     std::vector<std::complex<float>> orderParameters_;
     
     Eigen::Vector3f initializePosition(int x, int y);
+    void findMinMaxPosition();
     float initializeAngle();
     void updateVelocities(Eigen::MatrixXf& angles);
     void calculateVelocity(size_t x, size_t y, Eigen::MatrixXf& angles);
@@ -69,14 +75,17 @@ private:
     std::complex<float> calculateOrderParameter();
     
     // CUDA
-    float* d_angles, *d_pos_x, *d_pos_y, *d_velocities_x, *d_velocities_y;
+    float *d_angles, *d_pos_x, *d_pos_y, *d_velocities_x, *d_velocities_y, *d_velocity_points_x, *d_velocity_points_y, *d_velocity_points_z, 
+    *d_velocity_measurement_x, *d_velocity_measurement_y, *d_velocity_measurement_z;
     OseenParameters* d_params;
 
     void checkCudaError(cudaError_t err, const char* operation);
     void initializeCUDA();
-    void updateCUDA(Eigen::MatrixXf& angles);
+    void updateAnglesCUDA(Eigen::MatrixXf& angles);
+    void updateParametersCUDA();
     void freeCUDA();
     void CUDArungeKutta4();
     void CUDAcalculateStep(Eigen::MatrixXf& angles, Eigen::MatrixXf& result, float dt);
     void CUDAupdateVelocities(Eigen::MatrixXf& angles);
+    void CUDAfindVelocityField();
 };

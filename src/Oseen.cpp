@@ -4,11 +4,13 @@
 
 // Initialize the system
 Oseen::Oseen(SharedDataOseen& data) : sharedData(data), positions_(data.width * data.height, 3), velocities_(data.width * data.height, 3),
+    velocityPoints_(data.sidelengthOfVelocityPoints * data.sidelengthOfVelocityPoints, 3), velocityMeasurement_(data.sidelengthOfVelocityPoints * data.sidelengthOfVelocityPoints, 3), 
+    velocityMeasurementMagnitude_(data.sidelengthOfVelocityPoints * data.sidelengthOfVelocityPoints, 3),
     angles_(data.width, data.height), tempAngles_(data.width, data.height), 
     k1_(data.width, data.height), k2_(data.width, data.height), k3_(data.width, data.height), k4_(data.width, data.height) {
         
     data.startTime = std::chrono::high_resolution_clock::now();
-
+ 
     params.width = data.width;
     params.height = data.height;
     params.N = params.width * params.height;
@@ -19,16 +21,38 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data), positions_(data.width * 
     params.fluid_viscosity = 1;
     params.drag_coefficient = 6*M_PI*params.fluid_viscosity*0.05; // Change later!
     params.grid_spacing = data.gridSpacing;
+    params.prefactor = 1/(8*M_PI*params.mu);  // Precompute constant
+    params.diff_z = params.z + params.z;
+    params.z1_square = params.z * params.z;
+    params.z1z2 = -params.z1_square;
+    params.velocityPointsZ = data.velocityPointZ;
+    params.sidelengthOfVelocityPoints = data.sidelengthOfVelocityPoints;
+    
+    // Initialize minPosition_ and maxPosition_ to the first position
+    minPosition_ = positions_.row(0);
+    maxPosition_ = positions_.row(0);
 
     // Parse through the positions_ and set the initial values
     for (size_t i = 0; i < params.width; ++i) {
         for (size_t j = 0; j < params.height; ++j) {
             size_t index = i * params.height + j;
-            positions_.row(index) = initializePosition(i, j);
+            Eigen::Vector3f position = initializePosition(i, j);
+            positions_.row(index) = position;
             velocities_.row(index).setZero(); // Assuming you start with zero velocity
             angles_(i, j) = initializeAngle();
         }
     }
+    findMinMaxPosition();
+
+    for (size_t i = 0; i < params.sidelengthOfVelocityPoints; ++i) {
+        for (size_t j = 0; j < params.sidelengthOfVelocityPoints; ++j) {
+            size_t index = i * params.sidelengthOfVelocityPoints + j;
+            velocityPoints_.row(index) = Eigen::Vector3f(minPosition_[0] + (maxPosition_[0] - minPosition_[0]) * i / (params.sidelengthOfVelocityPoints - 1),
+                                                         minPosition_[1] + (maxPosition_[1] - minPosition_[1]) * j / (params.sidelengthOfVelocityPoints - 1),
+                                                         data.velocityPointZ);
+        }
+    }
+    normalizeAngles(angles_);
 
     // Initialize the order parameter calculation if flag is set
     if (findOrderParameter_) {
@@ -44,7 +68,7 @@ Oseen::Oseen(SharedDataOseen& data) : sharedData(data), positions_(data.width * 
 }
 
 Oseen::~Oseen() {
-    //freeCUDA();
+    freeCUDA();
 }
 
 Eigen::Vector3f Oseen::initializePosition(int x, int y) {
@@ -78,6 +102,24 @@ Eigen::Vector3f Oseen::initializePosition(int x, int y) {
         default: {
             // Handle other cases if necessary
             return Eigen::Vector3f(gridX, gridY, params.z);
+        }
+    }
+}
+
+void Oseen::findMinMaxPosition() {
+    // Initialize minPosition_ and maxPosition_ to the first position
+    minPosition_ = positions_.row(0);
+    maxPosition_ = positions_.row(0);
+
+    for (size_t i = 0; i < params.N; ++i) {
+        Eigen::Vector3f position = positions_.row(i);
+        for (size_t j = 0; j < 3; ++j) {
+            if (position[j] < minPosition_[j]) {
+                minPosition_[j] = position[j];
+            }
+            if (position[j] > maxPosition_[j]) {
+                maxPosition_[j] = position[j];
+            }
         }
     }
 }
@@ -137,7 +179,12 @@ void Oseen::initializeCUDA() {
     checkCudaError(cudaMalloc(&d_pos_y, params.N * sizeof(float)), "cudaMalloc d_pos_y");
     checkCudaError(cudaMalloc(&d_velocities_x, params.N * sizeof(float)), "cudaMalloc d_velocities_x");
     checkCudaError(cudaMalloc(&d_velocities_y, params.N * sizeof(float)), "cudaMalloc d_velocities_y");
-    std::cout << "Allocating d_params" << std::endl;
+    checkCudaError(cudaMalloc(&d_velocity_points_x, params.sidelengthOfVelocityPoints * params.sidelengthOfVelocityPoints * sizeof(float)), "cudaMalloc d_velocity_points_x");
+    checkCudaError(cudaMalloc(&d_velocity_points_y, params.sidelengthOfVelocityPoints * params.sidelengthOfVelocityPoints * sizeof(float)), "cudaMalloc d_velocity_points_y");
+    checkCudaError(cudaMalloc(&d_velocity_points_z, params.sidelengthOfVelocityPoints * params.sidelengthOfVelocityPoints * sizeof(float)), "cudaMalloc d_velocity_points_z");
+    checkCudaError(cudaMalloc(&d_velocity_measurement_x, params.sidelengthOfVelocityPoints * params.sidelengthOfVelocityPoints * sizeof(float)), "cudaMalloc d_velocity_measurement_x");
+    checkCudaError(cudaMalloc(&d_velocity_measurement_y, params.sidelengthOfVelocityPoints * params.sidelengthOfVelocityPoints * sizeof(float)), "cudaMalloc d_velocity_measurement_y");
+    checkCudaError(cudaMalloc(&d_velocity_measurement_z, params.sidelengthOfVelocityPoints * params.sidelengthOfVelocityPoints * sizeof(float)), "cudaMalloc d_velocity_measurement_z");
     checkCudaError(cudaMalloc(&d_params, sizeof(OseenParameters)), "cudaMalloc d_params");
 
 
@@ -151,17 +198,30 @@ void Oseen::initializeCUDA() {
         pos_y[i] = positions_(i, 1);
     }
 
+    std::vector<float> velocity_point_x(params.sidelengthOfVelocityPoints);
+    std::vector<float> velocity_point_y(params.sidelengthOfVelocityPoints);
+    std::vector<float> velocity_point_z(params.sidelengthOfVelocityPoints);
+    for (unsigned int i = 0; i < params.sidelengthOfVelocityPoints; ++i) {
+        velocity_point_x[i] = velocityPoints_(i, 0);
+        velocity_point_y[i] = velocityPoints_(i, 1);
+        velocity_point_z[i] = velocityPoints_(i, 2);
+    }
+    assert(!angles_.hasNaN());
     // Copy initial data to the GPU
     checkCudaError(cudaMemcpy(d_angles, angles_.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_angles");
     checkCudaError(cudaMemcpy(d_pos_x, pos_x.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_pos_x");
     checkCudaError(cudaMemcpy(d_pos_y, pos_y.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_pos_y");
-    checkCudaError(cudaMemcpy(d_velocities_x, velocities_.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_velocities_x");
-    checkCudaError(cudaMemcpy(d_velocities_y, velocities_.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_velocities_y");
-    std::cout << "Copying d_params to device" << std::endl;
+    checkCudaError(cudaMemcpy(d_velocity_points_x, velocity_point_x.data(), params.sidelengthOfVelocityPoints * params.sidelengthOfVelocityPoints * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_velocity_points_x");
+    checkCudaError(cudaMemcpy(d_velocity_points_y, velocity_point_y.data(), params.sidelengthOfVelocityPoints * params.sidelengthOfVelocityPoints * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_velocity_points_y");
+    checkCudaError(cudaMemcpy(d_velocity_points_z, velocity_point_z.data(), params.sidelengthOfVelocityPoints * params.sidelengthOfVelocityPoints * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy d_velocity_points_z");
     checkCudaError(cudaMemcpy(d_params, &params, sizeof(OseenParameters), cudaMemcpyHostToDevice), "cudaMemcpy d_params");
 }
 
-void Oseen::updateCUDA(Eigen::MatrixXf& angles) {
+void Oseen::updateAnglesCUDA(Eigen::MatrixXf& angles) {
+    checkCudaError(cudaMemcpy(d_angles, angles.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy angles");
+}
+
+void Oseen::updateParametersCUDA() {
     // Update the parameters from sharedData
     params.deltaTime = sharedData.deltaTime;
     params.force = sharedData.force;
@@ -170,11 +230,11 @@ void Oseen::updateCUDA(Eigen::MatrixXf& angles) {
     params.beta1 = sharedData.beta1;
     params.alfa2 = sharedData.alfa2;
     params.beta2 = sharedData.beta2;
+    params.use_blake = sharedData.useBlake;
+    params.velocityPointsZ = sharedData.velocityPointZ;
 
     // Copy the updated parameters to the device
     checkCudaError(cudaMemcpy(d_params, &params, sizeof(OseenParameters), cudaMemcpyHostToDevice), "cudaMemcpy d_params");
-    // Copy angles to the GPU
-    checkCudaError(cudaMemcpy(d_angles, angles.data(), params.N * sizeof(float), cudaMemcpyHostToDevice), "cudaMemcpy angles");
 }
 
 void Oseen::freeCUDA() {
@@ -184,16 +244,22 @@ void Oseen::freeCUDA() {
     checkCudaError(cudaFree(d_pos_y), "cudaFree d_pos_y");
     checkCudaError(cudaFree(d_velocities_x), "cudaFree d_velocities_x");
     checkCudaError(cudaFree(d_velocities_y), "cudaFree d_velocities_y");
+    checkCudaError(cudaFree(d_velocity_points_x), "cudaFree d_velocity_points_x");
+    checkCudaError(cudaFree(d_velocity_points_y), "cudaFree d_velocity_points_y");
+    checkCudaError(cudaFree(d_velocity_points_z), "cudaFree d_velocity_points_z");
+    checkCudaError(cudaFree(d_velocity_measurement_x), "cudaFree d_velocity_measurement_x");
+    checkCudaError(cudaFree(d_velocity_measurement_y), "cudaFree d_velocity_measurement_y");
+    checkCudaError(cudaFree(d_velocity_measurement_z), "cudaFree d_velocity_measurement_z");
     checkCudaError(cudaFree(d_params), "cudaFree d_params");
 }
 
 void Oseen::CUDAupdateVelocities(Eigen::MatrixXf& angles) {
 
     // Update the parameters from sharedData
-    updateCUDA(angles);
-
+    updateAnglesCUDA(angles);
+    
     // Launch the kernel
-    launchCalculateVelocityKernel(d_pos_x, d_pos_y, d_angles, d_velocities_x, d_velocities_y, d_params, params.N);
+    launchCalculateVelocityKernelBlake(d_pos_x, d_pos_y, d_angles, d_velocities_x, d_velocities_y, params.N, d_params);
     
     // Check for errors in the kernel launch
     checkCudaError(cudaGetLastError(), "Launching calculateVelocityKernel");
@@ -208,12 +274,45 @@ void Oseen::CUDAupdateVelocities(Eigen::MatrixXf& angles) {
     // Copy velocities back to the CPU
     checkCudaError(cudaMemcpy(velocities_x.data(), d_velocities_x, params.N * sizeof(float), cudaMemcpyDeviceToHost), "cudaMemcpy d_velocities_x");
     checkCudaError(cudaMemcpy(velocities_y.data(), d_velocities_y, params.N * sizeof(float), cudaMemcpyDeviceToHost), "cudaMemcpy d_velocities_y");
-
+    
+    std::cout << "velocities_x[5]: " << velocities_x[5] << std::endl;
     // Update the 'velocities_' member variable
     for (size_t i = 0; i < params.N; ++i) {
         velocities_(i, 0) = velocities_x[i];
         velocities_(i, 1) = velocities_y[i];
         velocities_(i, 2) = 0.0;  // Assuming the z component is zero
+    }
+}
+
+void Oseen::CUDAfindVelocityField() {
+
+    launchCalculateVelocityField(d_velocity_points_x, d_velocity_points_y, d_velocity_points_z, d_pos_x, d_pos_y, d_angles, 
+    d_velocity_measurement_x, d_velocity_measurement_y, d_velocity_measurement_z, params.sidelengthOfVelocityPoints);
+    
+    // Check for errors in the kernel launch
+    checkCudaError(cudaGetLastError(), "Launching calculateVelocityKernel");
+
+    // Wait for the GPU to finish and check for errors
+    checkCudaError(cudaDeviceSynchronize(), "Synchronizing after kernel launch");
+    // Create temporary arrays to hold the velocity measurements
+    std::vector<float> velocity_measurement_x(params.sidelengthOfVelocityPoints);
+    std::vector<float> velocity_measurement_y(params.sidelengthOfVelocityPoints);
+    std::vector<float> velocity_measurement_z(params.sidelengthOfVelocityPoints);
+
+    // Copy velocity measurements back to the CPU
+    checkCudaError(cudaMemcpy(velocity_measurement_x.data(), d_velocity_measurement_x, params.sidelengthOfVelocityPoints * sizeof(float), cudaMemcpyDeviceToHost), "cudaMemcpy d_velocity_measurement_x");
+    checkCudaError(cudaMemcpy(velocity_measurement_y.data(), d_velocity_measurement_y, params.sidelengthOfVelocityPoints * sizeof(float), cudaMemcpyDeviceToHost), "cudaMemcpy d_velocity_measurement_y");
+    checkCudaError(cudaMemcpy(velocity_measurement_z.data(), d_velocity_measurement_z, params.sidelengthOfVelocityPoints * sizeof(float), cudaMemcpyDeviceToHost), "cudaMemcpy d_velocity_measurement_z");
+
+        // Update the 'velocityMeasurement_' member variable
+    for (size_t i = 0; i < params.sidelengthOfVelocityPoints; ++i) {
+        velocityMeasurement_(i, 0) = velocity_measurement_x[i];
+        velocityMeasurement_(i, 1) = velocity_measurement_y[i];
+        velocityMeasurement_(i, 2) = velocity_measurement_z[i];
+        // Calculate the magnitude of the velocity vector
+        velocityMeasurementMagnitude_(i, 0) = sqrt(velocity_measurement_x[i] * velocity_measurement_x[i] +
+                                                  velocity_measurement_y[i] * velocity_measurement_y[i] +
+                                                  velocity_measurement_z[i] * velocity_measurement_z[i]);
     }
 }
 
@@ -248,7 +347,11 @@ void Oseen::iteration() {
     sharedData.iteration++; // Update frame count
     auto startTime = std::chrono::high_resolution_clock::now(); // Start measuring time
 
+    std::cout << "velocity (5,5): " << velocities_.row(5 * params.height + 5) << std::endl;
+    updateParametersCUDA();
     CUDArungeKutta4();
+    //CUDAfindVelocityField();
+    //std::cout << "CUDAfindVelocityField() done\n";
 
     auto endTime = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
@@ -298,10 +401,19 @@ void Oseen::updateAngles() {
 }
 
 void Oseen::normalizeAngles(Eigen::MatrixXf& angles) {
-    angles.array() = angles.array().unaryExpr([](float val) { 
-        val = std::fmod(val, 2 * static_cast<float>(M_PI));
-        return val < 0 ? val + 2 * static_cast<float>(M_PI) : val; 
-    });
+    #pragma omp parallel for collapse(2) // Parallelize both x and y loops
+    for (int i = 0; i < angles.rows(); ++i) {
+        for (int j = 0; j < angles.cols(); ++j) {
+            float val = angles(i, j);
+            val = std::fmod(val, 2 * static_cast<float>(M_PI));
+            if (val <= -M_PI) {
+                val += 2 * static_cast<float>(M_PI);
+            } else if (val > M_PI) {
+                val -= 2 * static_cast<float>(M_PI);
+            }
+            angles(i, j) = val;
+        }
+    }
 }
 
 void Oseen::rungeKutta4() {
